@@ -831,8 +831,8 @@ function cutfilm ()
 
 							if [ $cutwith == "smartmkvmerge" ]; then
 								$X264 $x264_opts --index ${tempdir}/x264.index --seek $lkeyframe --frames $((frames-ulkeyframe+sframe)) --output $outputfilename $film
-								if [ ! -f $outputfilename ]; then
-									echo "$c_error x264 failed" >&2
+								if [ ! -f $outputfilename ] || [ $(stat -c %s "$outputfilename") -eq 0 ]; then
+									echo -e "$c_error x264 failed" >&2
 									cleanup 1
 								fi
 							elif [ $cutwith == "smartmkvmergeavconv" ]; then
@@ -860,8 +860,8 @@ function cutfilm ()
 						outputfilename=cut${checkcnt}_seg1.mkv
 						if [ $cutwith == "smartmkvmerge" ]; then
 							$X264 $x264_opts --index ${tempdir}/x264.index --seek $sframe --frames $((eframes)) --output $outputfilename $film
-							if [ ! -f $outputfilename ]; then
-								echo x264 failed
+							if [ ! -f $outputfilename ] || [ $(stat -c %s "$outputfilename") -eq 0 ]; then
+								echo -e "$c_error x264 failed" >&2
 								cleanup 1
 							fi
 						elif [ $cutwith == "smartmkvmergeavconv" ]; then
@@ -901,8 +901,8 @@ function cutfilm ()
 
 								if [ $cutwith == "smartmkvmerge" ]; then
 									$X264 $x264_opts  --index ${tempdir}/x264.index --seek $beframe --frames $((sframe+frames-beframe)) --output $outputfilename $film
-									if [ ! -f $outputfilename ]; then
-										echo x264 failed
+									if [ ! -f $outputfilename ] || [ $(stat -c %s "$outputfilename") -eq 0 ]; then
+										echo -e "$c_error x264 failed" >&2
 										cleanup 1
 									fi
 								elif [ $cutwith == "smartmkvmergeavconv" ]; then
@@ -1143,16 +1143,15 @@ if [ ! -d "$tempdir" ] ; then
 	echo -e "$c_error Temporaerer Ordner $tempdir nicht gefunden!$c_end" >&2
 	exit 1
 fi
-tmp=$(find $tempdir -name "`basename $1`*" | tail -n 1)
-if [ $? -eq 0 -a -n "$tmp" ]; then
-	tempdir=$(dirname $tmp)
+if [ $# -ne 0 ]; then
+	tmp=$(find $tempdir -name "`basename $1`*" | tail -n 1)
+	if [ $? -eq 0 -a -n "$tmp" ]; then
+		tempdir=$(dirname $tmp)
+	else
+		tempdir="$tempdir/$$"
+		mkdir -p "$tempdir"
+	fi
 else
-	tempdir="$tempdir/$$"
-	mkdir -p "$tempdir"
-fi
-
-if [[ ${#} -eq 0 ]]
-then
 	echo "Aufruf: $0 <Optionen> <Film>"
 	exit 1
 fi
