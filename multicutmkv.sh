@@ -87,6 +87,7 @@ x264_hd_string="--tune film --direct auto --force-cfr --rc-lookahead 60 --b-adap
 x264_hq_string="--tune film --direct auto --force-cfr --rc-lookahead 60 --b-adapt 2 --aq-mode 2 --weightp 0"
 x264_mp4_string="--force-cfr --profile baseline --preset medium --trellis 0"
 X264=x264
+X264_X_ARGS=-v
 AVCONV=avconv
 AVCONV_X_ARGS=
 MKVMERGE=mkvmerge
@@ -157,6 +158,15 @@ function check_dependencies2()
 			echo -e "$c_error Please install x264" >&2
 			pist=1
 		fi
+		if ! type avxFrameServer > /dev/null 2>&1 ; then
+			echo -e "$c_error Please make and install avxsynth" >&2
+			pist=1
+		fi
+	elif [ $cutwith == "smartmkvmerge" ]; then
+		if ! type $AVCONV > /dev/null 2>&1 ; then
+			echo -e "c_error Please install libav-tools"
+			pist=1
+		fi
 	fi
 
 	if [ $pist -ne 0 ]; then
@@ -184,7 +194,7 @@ function getFtype()
 	while read line
 	do
 		case $line in
-		"Color primaries"*) 
+		"Color primaries"*)
 			[[ $line == *"BT.709"* ]] && x264_opts="$x264_opts $bt709"
 			[[ $line == *"BT.470"* ]] && x264_opts="$x264_opts $bt470bg" ;;
 		"Format profile"*"@L"*) 
@@ -829,11 +839,13 @@ function cutfilm ()
 							video_files[${#video_files[@]}]=video_copy-00${checkcnt}.mkv
 							outputfilename=cut${checkcnt}_seg3.mkv
 
-							if [ $cutwith == "smartmkvmerge" ]; then
-								$X264 $x264_opts --index ${tempdir}/x264.index --seek $lkeyframe --frames $((frames-ulkeyframe+sframe)) --output $outputfilename $film
-								if [ ! -f $outputfilename ] || [ $(stat -c %s "$outputfilename") -eq 0 ]; then
+							if [ $cutwith == "smartmkvmerge" ] && [ ! -f $outputfilename.ok ] ; then
+								$X264 $X264_X_ARGS $x264_opts --index ${tempdir}/x264.index --seek $lkeyframe --frames $((frames-ulkeyframe+sframe)) --output $outputfilename $film
+								if [ $? -ne 0 ] || [ ! -f $outputfilename ] || [ $(stat -c %s "$outputfilename") -eq 0 ]; then
 									echo -e "$c_error x264 failed" >&2
 									cleanup 1
+								else
+									touch $outputfilename.ok
 								fi
 							elif [ $cutwith == "smartmkvmergeavconv" ]; then
 								# TODO richtige Start und endwerte prüfen
@@ -858,11 +870,13 @@ function cutfilm ()
 							eframes=$frames
 						fi
 						outputfilename=cut${checkcnt}_seg1.mkv
-						if [ $cutwith == "smartmkvmerge" ]; then
-							$X264 $x264_opts --index ${tempdir}/x264.index --seek $sframe --frames $((eframes)) --output $outputfilename $film
-							if [ ! -f $outputfilename ] || [ $(stat -c %s "$outputfilename") -eq 0 ]; then
+						if [ $cutwith == "smartmkvmerge" ] && [ ! -f $outputfilename.ok ] ; then
+							$X264 $X264_X_ARGS $x264_opts --index ${tempdir}/x264.index --seek $sframe --frames $((eframes)) --output $outputfilename $film
+							if [ $? -ne 0 ] || [ ! -f $outputfilename ] || [ $(stat -c %s "$outputfilename") -eq 0 ]; then
 								echo -e "$c_error x264 failed" >&2
 								cleanup 1
+							else
+								touch $outputfilename.ok
 							fi
 						elif [ $cutwith == "smartmkvmergeavconv" ]; then
 							# TODO richtige Start und endwerte prüfen
@@ -899,11 +913,13 @@ function cutfilm ()
 								outputfilename=cut${checkcnt}_seg3.mkv
 
 
-								if [ $cutwith == "smartmkvmerge" ]; then
-									$X264 $x264_opts  --index ${tempdir}/x264.index --seek $beframe --frames $((sframe+frames-beframe)) --output $outputfilename $film
-									if [ ! -f $outputfilename ] || [ $(stat -c %s "$outputfilename") -eq 0 ]; then
+								if [ $cutwith == "smartmkvmerge" ] && [ ! -f $outputfilename.ok ] ; then
+									$X264 $X264_X_ARGS $x264_opts  --index ${tempdir}/x264.index --seek $beframe --frames $((sframe+frames-beframe)) --output $outputfilename $film
+									if [ $? -ne 0 ] || [ ! -f $outputfilename ] || [ $(stat -c %s "$outputfilename") -eq 0 ]; then
 										echo -e "$c_error x264 failed" >&2
 										cleanup 1
+									else
+										touch $outputfilename.ok
 									fi
 								elif [ $cutwith == "smartmkvmergeavconv" ]; then
 									# TODO richtige Start und endwerte prüfen
