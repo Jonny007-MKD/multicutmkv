@@ -1156,8 +1156,12 @@ done
 workdir="$(pwd)"
 
 if [ ! -d "$tempdir" ] ; then
-	echo -e "$c_error Temporaerer Ordner $tempdir nicht gefunden!$c_end" >&2
-	exit 1
+	mkdir $tempdir
+	chmod 777 $tempdir
+	if [ ! -d "$tempdir" ] ; then
+		echo -e "$c_error Temporaerer Ordner $tempdir nicht gefunden!$c_end" >&2
+		exit 1
+	fi
 fi
 if [ $# -ne 0 ]; then
 	tmp=$(find $tempdir -name "`basename $1`*" | tail -n 1)
