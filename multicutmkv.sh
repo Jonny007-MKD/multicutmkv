@@ -151,9 +151,15 @@ function check_dependencies1()
 function check_dependencies2()
 {
 	local pist=0
-	if [ $cutwith == "avidemux" ] && ! type $avidemux > /dev/null 2>&1 ; then
-		echo -e "$c_error Please install avidemux!" >&2
-		pist=1;
+	if [ $cutwith == "avidemux" ]; then
+		if ! type $avidemux > /dev/null 2>&1 ; then
+			echo -e "$c_error Please install avidemux!" >&2
+			pist=1;
+		fi
+		if ! type $MKVMERGE > /dev/null 2>&1 ; then
+			echo -e "$c_error Please install mkvtoolnix" >&2
+			pist=1
+		fi
 	fi
 	if [ $cutwith == "avisplit" ] && ! type avisplit > /dev/null 2>&1 ; then
 		echo -e "$c_error Please install 'transcode'!" >&2
