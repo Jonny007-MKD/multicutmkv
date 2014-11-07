@@ -1213,6 +1213,10 @@ if [[ ${file:0:1} != "/" ]]
 then
 	file=`cd "${file%/*}" 2>/dev/null ; pwd`/"${file##*/}"	# absoluten dateinamen ermitteln
 fi
+if [ ! -e $file ]; then
+	echo "Specified file ($file) does not exist!"
+	exit 4
+fi
 
 # lokale cutlists kopieren (passende wird nach inhalt ausgewaehlt)
 [ $local -ne 0 ] && cp *.cutlist $tempdir 2>/dev/null
