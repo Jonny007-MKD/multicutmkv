@@ -11,6 +11,20 @@
 #
 # https://github.com/Jonny007-MKD/multicutmkv
 #################################################
+# Exit Codes
+#   1 General error or interrupt
+#   2 Missing arguments
+#   3 Tmp folder not found
+#   4 Specified file does not exist
+#  10 No cutlist found
+#  11 Downloading cutlist failed
+#  12 Unknown custlist format
+#  20 ffmsindex failed (could not create keyframe list)
+#  21 mkvmerge failed
+#  22 x264 failed
+#   6
+#   7
+# 126 Additional software needed
 
 
 
@@ -313,7 +327,7 @@ function dlCutlist ()
 	# "FIELD": Cutlist-Format
 	if [ ! -f "${cutlist[$idx]}" ]; then
 		echo -e "$c_error Dowloading cutlist failed!" >&2
-		cleanup 1
+		cleanup 11
 	fi
 	if grep -q "StartFrame=" "${cutlist[$idx]}" ; then
 		vcf2format[$idx]=1
@@ -321,7 +335,7 @@ function dlCutlist ()
 		vcf2format[$idx]=0
 	else
 		echo -e "$c_error unbekanntes Cutlist-Format: ${cutlist[$idx]}" >&2
-		cleanup 2
+		cleanup 12
 	fi
 }
 
@@ -591,7 +605,7 @@ function findclosesttime()
 		$FFMSINDEX $FFMSINDEX_X_ARGS -k -p -c -f $film ${film##*/}.ffindex
 		if [ ! -f "${kflist}" ]; then
 			echo -e "$c_error ffmsindex failed" >&2
-			cleanup 1
+			cleanup 20
 		fi
 	fi
 	echo $millis >> millis
@@ -621,7 +635,7 @@ function findkeyframeafterframe()
 		$FFMSINDEX $FFMSINDEX_X_ARGS -k -p -c -f $film ${film##*/}.ffindex
 		if [ ! -f "${kflist}" ]; then
 			echo -e "$c_error ffmsindex failed" >&2
-			cleanup 1
+			cleanup 20
 		fi
 	fi
 	echo $frame > frame
@@ -646,7 +660,7 @@ function iskeyframe()
 		$FFMSINDEX $FFMSINDEX_X_ARGS -k -p -c -f $film ${film##*/}.ffindex
 		if [ ! -f "${kflist}" ]; then
 			echo -e "$c_error ffmsindex failed" >&2
-			cleanup 1
+			cleanup 20
 		fi
 	fi
 	grep -q "^${frame}$" $kflist
@@ -668,7 +682,7 @@ function convertframestostime ()
 		$FFMSINDEX $FFMSINDEX_X_ARGS -k -p -c -f $film ${film##*/}.ffindex
 		if [ ! -f "${kflist}" ]; then
 			echo -e "$c_error ffmsindex failed" >&2
-			cleanup 1
+			cleanup 20
 		fi
 	fi
 	local tmp
@@ -692,7 +706,7 @@ function findkeyframebeforeframe()
 		$FFMSINDEX $FFMSINDEX_X_ARGS -k -p -c -f $film ${film##*/}.ffindex
 		if [ ! -f "${kflist}" ]; then
 			echo -e "$c_error ffmsindex failed" >&2
-			cleanup 1
+			cleanup 20
 		fi
 	fi
 	echo $frame > frame
@@ -741,13 +755,13 @@ function cutfilm ()
 					touch "${tempdir}/mkv.ok"
 				else
 					echo -e "$c_error mkvmerge failed" >&2
-					cleanup 1
+					cleanup 21
 				fi
 			fi
 			film="${tempdir}/$(basename $film).mkv"
 			if [ ! -f $film ]; then
 				echo -e "$c_error mkvmerge failed" >&2
-				cleanup 1
+				cleanup 21
 			fi
 		fi
 	fi
@@ -843,7 +857,7 @@ function cutfilm ()
 								$X264 $X264_X_ARGS $x264_opts --index ${tempdir}/x264.index --seek $lkeyframe --frames $((frames-ulkeyframe+sframe)) --output $outputfilename $film
 								if [ $? -ne 0 ] || [ ! -f $outputfilename ] || [ $(stat -c %s "$outputfilename") -eq 0 ]; then
 									echo -e "$c_error x264 failed" >&2
-									cleanup 1
+									cleanup 22
 								else
 									touch $outputfilename.ok
 								fi
@@ -874,7 +888,7 @@ function cutfilm ()
 							$X264 $X264_X_ARGS $x264_opts --index ${tempdir}/x264.index --seek $sframe --frames $((eframes)) --output $outputfilename $film
 							if [ $? -ne 0 ] || [ ! -f $outputfilename ] || [ $(stat -c %s "$outputfilename") -eq 0 ]; then
 								echo -e "$c_error x264 failed" >&2
-								cleanup 1
+								cleanup 22
 							else
 								touch $outputfilename.ok
 							fi
@@ -917,7 +931,7 @@ function cutfilm ()
 									$X264 $X264_X_ARGS $x264_opts  --index ${tempdir}/x264.index --seek $beframe --frames $((sframe+frames-beframe)) --output $outputfilename $film
 									if [ $? -ne 0 ] || [ ! -f $outputfilename ] || [ $(stat -c %s "$outputfilename") -eq 0 ]; then
 										echo -e "$c_error x264 failed" >&2
-										cleanup 1
+										cleanup 22
 									else
 										touch $outputfilename.ok
 									fi
@@ -987,7 +1001,7 @@ function cutfilm ()
 			fi
 		else
 			echo "Es ist Fehler $ecode aufgetreten! $name moeglicherweise nicht geschnitten!"
-			cleanup 1
+			cleanup 21
 		fi
 	elif [ $cutwith == "avisplit" ] ; then
 		cuts=${cuts%,}	# letztes komma abtrennen...
@@ -1146,7 +1160,7 @@ while [ "$1" != "${1#-}" ] ; do	# solange der naechste parameter mit "-" anfaeng
 	i) automode=0;;
 	a) automode=1;;
 	m) min_rating=$2; shift;;
-	*) help; exit 1;;
+	*) help; exit 0;;
 	esac
 	shift
 done
@@ -1160,7 +1174,7 @@ if [ ! -d "$tempdir" ] ; then
 	chmod 777 $tempdir
 	if [ ! -d "$tempdir" ] ; then
 		echo -e "$c_error Temporaerer Ordner $tempdir nicht gefunden!$c_end" >&2
-		exit 1
+		exit 3
 	fi
 fi
 if [ $# -ne 0 ]; then
@@ -1173,7 +1187,7 @@ if [ $# -ne 0 ]; then
 	fi
 else
 	echo "Aufruf: $0 <Optionen> <Film>"
-	exit 1
+	exit 2
 fi
 
 tempdir=${tempdir%/}
@@ -1205,7 +1219,7 @@ usecl=$?	# zurueckgegebene cutlist verwenden. (array-index)
 (( $usecl == 0 )) && 
 {
 	rm -rf $tempdir
-	exit 5
+	exit 10
 	# abbruch, film nicht schneiden
 }
 #  usecl=$((usecl-1))
