@@ -150,7 +150,6 @@ function check_dependencies1()
 }
 function check_dependencies2()
 {
-	local pist=0
 	if [ $cutwith == "avidemux" ]; then
 		if ! type $avidemux > /dev/null 2>&1 ; then
 			echo -e "$c_error Please install avidemux!" >&2
@@ -160,12 +159,12 @@ function check_dependencies2()
 			echo -e "$c_error Please install mkvtoolnix" >&2
 			pist=1
 		fi
-	fi
-	if [ $cutwith == "avisplit" ] && ! type avisplit > /dev/null 2>&1 ; then
-		echo -e "$c_error Please install 'transcode'!" >&2
-		pist=1
-	fi
-	if [ $cutwith == "smartmkvmerge" ]; then
+	elif [ $cutwith == "avisplit" ]; then
+		if ! type avisplit > /dev/null 2>&1 ; then
+			echo -e "$c_error Please install 'transcode'!" >&2
+			pist=1
+		fi
+	elif [ $cutwith == "smartmkvmerge" ]; then
 		if ! type $MKVMERGE > /dev/null 2>&1 ; then
 			echo -e "$c_error Please install mkvtoolnix" >&2
 			pist=1
@@ -182,9 +181,13 @@ function check_dependencies2()
 			echo -e "$c_error Please make and install avxsynth" >&2
 			pist=1
 		fi
-	elif [ $cutwith == "smartmkvmerge" ]; then
+	elif [ $cutwith == "smartmkvmergeavconv" ]; then
 		if ! type $AVCONV > /dev/null 2>&1 ; then
 			echo -e "c_error Please install libav-tools"
+			pist=1
+		fi
+		if ! type $MKVMERGE > /dev/null 2>&1 ; then
+			echo -e "$c_error Please install mkvtoolnix" >&2
 			pist=1
 		fi
 	fi
@@ -282,11 +285,11 @@ function getFtype()
 	shopt -s compat31
 	# x264 arbeitet nur über ffms genau genug nutze den ffms-demuxer oder leb mit ungenauen Schnitten.
 	#x264_opts="$x264_opts --demuxer ffms"
-	if [[ ${filename} =~ ".*HQ.avi.*" ]]
+	if [[ ${filename} =~ ".*HQ.avi*" ]]
 	then
 		x264_opts="$x264_opts $x264_hq_string"
 		cutwith=smartmkvmerge
-	elif [[ ${filename} =~ ".*HD.avi.*" ]]; then
+	elif [[ ${filename} =~ ".*HD.avi*" ]]; then
 		x264_opts="$x264_opts $x264_hd_string"
 		cutwith=smartmkvmerge
 	elif [[ ${filename} =~ ".*mp4" ]]; then
@@ -755,6 +758,7 @@ function cutfilm ()
 	then
 		if [ $cutwith == "avidemux" ] || [ $cutwith == "smartmkvmergeavconv" ]
 		then
+			check_dependencies2
 			if [ ! -f "${tempdir}/mkv.ok" ]; then
 				$MKVMERGE $MKVMERGE_X_ARGS -o "${tempdir}/$(basename $film).mkv" "$film"
 				if [ $? -eq 0 ]; then
@@ -1137,12 +1141,11 @@ cleanup 1
 check_dependencies1
 
 # guess a decent default for cutwith
-if [[ ${@} =~ ".*HQ.avi.*" ]]
-then
+if [[ ${@} = *.HQ.avi ]]; then
 	cutwith=smartmkvmerge
-elif [[ ${@} =~ ".*HD.avi.*" ]]; then
+elif [[ ${@} = *.HD.avi ]]; then
 	cutwith=smartmkvmerge
-elif [[ ${@} =~ ".*mp4.*" ]]; then
+elif [[ ${@} = *.mp4 ]]; then
 	cutwith=smartmkvmerge
 else
 	cutwith=smartmkvmergeavconv
