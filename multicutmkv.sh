@@ -81,7 +81,7 @@ c_cuts="\033[01;33;41m"
 c_selection="\033[01;37;40m"
 c_error="\033[01;31;40m"
 c_info="\033[01;30;42m"
-c_end="\033[00m"
+c_end="\033[00;00m"
 
 function cleanup() 
 {
@@ -132,15 +132,15 @@ function check_dependencies1()
 {
 	local pist=0;
 	if ! type gawk >/dev/null 2>&1 ; then
-		echo -e "$c_error Please install gawk!" >&2
+		echo -e "${c_error}Please install gawk!" >&2
 		pist=1;
 	fi
 	if ! type bc >/dev/null 2>&1 ; then
-		echo -e "$c_error Please install bc!" >&2
+		echo -e "${c_error}Please install bc!" >&2
 		pist=1;
 	fi
 	if ! type $MEDIAINFO >/dev/null 2>&1 ; then
-		echo -e "$c_error Please install mediainfo!" >&2
+		echo -e "${c_error}Please install mediainfo!" >&2
 		pist=1;
 	fi
 
@@ -150,35 +150,36 @@ function check_dependencies1()
 }
 function check_dependencies2()
 {
+	local pist=0
 	if [ $cutwith == "avidemux" ]; then
 		if ! type $avidemux > /dev/null 2>&1 ; then
-			echo -e "$c_error Please install avidemux!" >&2
+			echo -e "${c_error}Please install avidemux!" >&2
 			pist=1;
 		fi
 		if ! type $MKVMERGE > /dev/null 2>&1 ; then
-			echo -e "$c_error Please install mkvtoolnix" >&2
+			echo -e "${c_error}Please install mkvtoolnix" >&2
 			pist=1
 		fi
 	elif [ $cutwith == "avisplit" ]; then
 		if ! type avisplit > /dev/null 2>&1 ; then
-			echo -e "$c_error Please install 'transcode'!" >&2
+			echo -e "${c_error}Please install 'transcode'!" >&2
 			pist=1
 		fi
 	elif [ $cutwith == "smartmkvmerge" ]; then
 		if ! type $MKVMERGE > /dev/null 2>&1 ; then
-			echo -e "$c_error Please install mkvtoolnix" >&2
+			echo -e "${c_error}Please install mkvtoolnix" >&2
 			pist=1
 		fi
 		if ! type $FFMSINDEX > /dev/null 2>&1 ; then
-			echo -e "$c_error Please install ffmsindex" >&2
+			echo -e "${c_error}Please install ffmsindex" >&2
 			pist=1
 		fi
 		if ! type $X264 > /dev/null 2>&1 ; then
-			echo -e "$c_error Please install x264" >&2
+			echo -e "${c_error}Please install x264" >&2
 			pist=1
 		fi
 		if ! type avxFrameServer > /dev/null 2>&1 ; then
-			echo -e "$c_error Please make and install avxsynth" >&2
+			echo -e "${c_error}Please make and install avxsynth" >&2
 			pist=1
 		fi
 	elif [ $cutwith == "smartmkvmergeavconv" ]; then
@@ -187,7 +188,7 @@ function check_dependencies2()
 			pist=1
 		fi
 		if ! type $MKVMERGE > /dev/null 2>&1 ; then
-			echo -e "$c_error Please install mkvtoolnix" >&2
+			echo -e "${c_error}Please install mkvtoolnix" >&2
 			pist=1
 		fi
 	fi
@@ -310,7 +311,7 @@ function dlCutlists ()
 { # filename
 	cd "$workdir"
 	filename="${1}"
-	echo -en "$c_info Suche cutlists fuer ${filename##*/}...$c_end"
+	echo -en "${c_info}Suche cutlists fuer ${filename##*/}...$c_end"
 	if [[ $(uname) != "Linux" ]]
 	then
 		search=$(stat -f %z "$filename")
@@ -335,7 +336,7 @@ function dlCutlist ()
 	wget -q -O "${cutlist[$idx]}" "${url[$idx]}"
 	# "FIELD": Cutlist-Format
 	if [ ! -f "${cutlist[$idx]}" ]; then
-		echo -e "$c_error Dowloading cutlist failed!" >&2
+		echo -e "${c_error}Dowloading cutlist failed!" >&2
 		cleanup 11
 	fi
 	if grep -q "StartFrame=" "${cutlist[$idx]}" ; then
@@ -343,7 +344,7 @@ function dlCutlist ()
 	elif grep -q "Start=" "${cutlist[$idx]}" ; then
 		vcf2format[$idx]=0
 	else
-		echo -e "$c_error unbekanntes Cutlist-Format: ${cutlist[$idx]}" >&2
+		echo -e "${c_error}unbekanntes Cutlist-Format: ${cutlist[$idx]}" >&2
 		cleanup 12
 	fi
 }
@@ -375,7 +376,7 @@ function findBestCutlist ()
 		elif grep -q "Start=" $cl ; then
 			vcf2format[$i]=0
 		else
-			echo -e "$c_error Unbekanntes Cutlist-Format: ${cl##*/}" >&2
+			echo -e "${c_error}Unbekanntes Cutlist-Format: ${cl##*/}" >&2
 			continue # cutlist ignorieren, unbekanntes format...
 		fi
 		# FIELD: Author
@@ -484,7 +485,7 @@ function findBestCutlist ()
 	done
 
 	if [ ${#cutlist[@]} -eq 0 ] ; then
-		echo -e "$c_error Keine passende Cutlist fuer $c_filename$filename$c_error gefunden. Abbruch.$c_end" >&2
+		echo -e "${c_error}Keine passende Cutlist fuer $c_filename$filename$c_error gefunden. Abbruch.$c_end" >&2
 		return 0
 	fi
 	sortCutlists		# gesammelte cutlists nach "qualitaet" sortieren
@@ -613,7 +614,7 @@ function findclosesttime()
 	then
 		$FFMSINDEX $FFMSINDEX_X_ARGS -k -p -c -f $film ${film##*/}.ffindex
 		if [ ! -f "${kflist}" ]; then
-			echo -e "$c_error ffmsindex failed" >&2
+			echo -e "${c_error}ffmsindex failed" >&2
 			cleanup 20
 		fi
 	fi
@@ -643,7 +644,7 @@ function findkeyframeafterframe()
 	then
 		$FFMSINDEX $FFMSINDEX_X_ARGS -k -p -c -f $film ${film##*/}.ffindex
 		if [ ! -f "${kflist}" ]; then
-			echo -e "$c_error ffmsindex failed" >&2
+			echo -e "${c_error}ffmsindex failed" >&2
 			cleanup 20
 		fi
 	fi
@@ -668,7 +669,7 @@ function iskeyframe()
 	then
 		$FFMSINDEX $FFMSINDEX_X_ARGS -k -p -c -f $film ${film##*/}.ffindex
 		if [ ! -f "${kflist}" ]; then
-			echo -e "$c_error ffmsindex failed" >&2
+			echo -e "${c_error}ffmsindex failed" >&2
 			cleanup 20
 		fi
 	fi
@@ -690,7 +691,7 @@ function convertframestostime ()
 	then
 		$FFMSINDEX $FFMSINDEX_X_ARGS -k -p -c -f $film ${film##*/}.ffindex
 		if [ ! -f "${kflist}" ]; then
-			echo -e "$c_error ffmsindex failed" >&2
+			echo -e "${c_error}ffmsindex failed" >&2
 			cleanup 20
 		fi
 	fi
@@ -714,7 +715,7 @@ function findkeyframebeforeframe()
 	then
 		$FFMSINDEX $FFMSINDEX_X_ARGS -k -p -c -f $film ${film##*/}.ffindex
 		if [ ! -f "${kflist}" ]; then
-			echo -e "$c_error ffmsindex failed" >&2
+			echo -e "${c_error}ffmsindex failed" >&2
 			cleanup 20
 		fi
 	fi
@@ -764,13 +765,13 @@ function cutfilm ()
 				if [ $? -eq 0 ]; then
 					touch "${tempdir}/mkv.ok"
 				else
-					echo -e "$c_error mkvmerge failed" >&2
+					echo -e "${c_error}mkvmerge failed" >&2
 					cleanup 21
 				fi
 			fi
 			film="${tempdir}/$(basename $film).mkv"
 			if [ ! -f $film ]; then
-				echo -e "$c_error mkvmerge failed" >&2
+				echo -e "${c_error}mkvmerge failed" >&2
 				cleanup 21
 			fi
 		fi
@@ -840,8 +841,8 @@ function cutfilm ()
 					skeyframe=$(findkeyframebeforeframe $sframe $film)
 					local tmp
 					# encode
-					echo -e "$c_info start: $sframe"
-					echo -e "end: $frames$c_end"
+					echo -e "${c_info}start: $sframe${c_end}"
+					echo -e "${c_info}end:   $frames${c_end}"
 
 					if iskeyframe $sframe $film; then
 						echo start ist keyframe
@@ -866,7 +867,7 @@ function cutfilm ()
 							if [ $cutwith == "smartmkvmerge" ] && [ ! -f $outputfilename.ok ] ; then
 								$X264 $X264_X_ARGS $x264_opts --index ${tempdir}/x264.index --seek $lkeyframe --frames $((frames-ulkeyframe+sframe)) --output $outputfilename $film
 								if [ $? -ne 0 ] || [ ! -f $outputfilename ] || [ $(stat -c %s "$outputfilename") -eq 0 ]; then
-									echo -e "$c_error x264 failed" >&2
+									echo -e "${c_error}x264 failed" >&2
 									cleanup 22
 								else
 									touch $outputfilename.ok
@@ -897,7 +898,7 @@ function cutfilm ()
 						if [ $cutwith == "smartmkvmerge" ] && [ ! -f $outputfilename.ok ] ; then
 							$X264 $X264_X_ARGS $x264_opts --index ${tempdir}/x264.index --seek $sframe --frames $((eframes)) --output $outputfilename $film
 							if [ $? -ne 0 ] || [ ! -f $outputfilename ] || [ $(stat -c %s "$outputfilename") -eq 0 ]; then
-								echo -e "$c_error x264 failed" >&2
+								echo -e "${c_error}x264 failed" >&2
 								cleanup 22
 							else
 								touch $outputfilename.ok
@@ -940,7 +941,7 @@ function cutfilm ()
 								if [ $cutwith == "smartmkvmerge" ] && [ ! -f $outputfilename.ok ] ; then
 									$X264 $X264_X_ARGS $x264_opts  --index ${tempdir}/x264.index --seek $beframe --frames $((sframe+frames-beframe)) --output $outputfilename $film
 									if [ $? -ne 0 ] || [ ! -f $outputfilename ] || [ $(stat -c %s "$outputfilename") -eq 0 ]; then
-										echo -e "$c_error x264 failed" >&2
+										echo -e "${c_error}x264 failed" >&2
 										cleanup 22
 									else
 										touch $outputfilename.ok
@@ -1182,7 +1183,7 @@ if [ ! -d "$tempdir" ] ; then
 	mkdir $tempdir
 	chmod 777 $tempdir
 	if [ ! -d "$tempdir" ] ; then
-		echo -e "$c_error Temporaerer Ordner $tempdir nicht gefunden!$c_end" >&2
+		echo -e "${c_error}Temporaerer Ordner $tempdir nicht gefunden!$c_end" >&2
 		exit 3
 	fi
 fi
