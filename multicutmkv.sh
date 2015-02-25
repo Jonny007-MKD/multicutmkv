@@ -101,7 +101,7 @@ x264_hd_string="--tune film --direct auto --force-cfr --rc-lookahead 60 --b-adap
 x264_hq_string="--tune film --direct auto --force-cfr --rc-lookahead 60 --b-adapt 2 --aq-mode 2 --weightp 0"
 x264_mp4_string="--force-cfr --profile baseline --preset medium --trellis 0"
 X264=x264
-X264_X_ARGS=-v
+X264_X_ARGS=
 AVCONV=avconv
 AVCONV_X_ARGS=
 MKVMERGE=mkvmerge
@@ -975,7 +975,7 @@ function cutfilm ()
 	outname="$cutdir/${name%.mpg.avi}-cut.avi"
 
 	if [ $cutwith == "smartmkvmerge" ] || [ $cutwith == "smartmkvmergeavconv" ]; then
-		outname="$cutdir/${name%.mpg.avi}-cut.mkv"
+		outname="$cutdir/${name%.mkv}-cut.mkv"
 		video_splitframes="${video_splitframes:1}"
 		audio_timecodes="${audio_timecodes:2}"
 		[[ $cutwith == "smartmkvmerge" ]] && mkvmergeopts="-A"
