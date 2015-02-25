@@ -211,8 +211,8 @@ function getFtype()
 	bt709="--videoformat pal --colorprim bt709 --transfer bt709 --colormatrix bt709"
 	bt470bg="--videoformat pal --colorprim bt470bg --transfer bt470bg --colormatrix bt470bg"
 	avconvopts="-vcodec mpeg4 -vtag DX50 -q:v 1 -g 300"
-	if [ ! -f $filename.mediainfo ]; then
-		$MEDIAINFO $MEDIAINFO_X_ARGS $filename > $filename.mediainfo
+	if [ ! -f $tempdir/$(basename $film).mediainfo ]; then
+		$MEDIAINFO $MEDIAINFO_X_ARGS $filename > $tempdir/$(basename $film).mediainfo
 	fi
 
 	while read line
@@ -281,7 +281,7 @@ function getFtype()
 			done;;
 		*) ;;
 		esac
-	done < $filename.mediainfo
+	done < $tempdir/$(basename $film).mediainfo
 
 	shopt -s compat31
 	# x264 arbeitet nur über ffms genau genug nutze den ffms-demuxer oder leb mit ungenauen Schnitten.
@@ -447,8 +447,8 @@ function findBestCutlist ()
 		tmp=${tmp%<*}
 		author[$i]=${tmp#*>}
 		author[$i]=${author[$i]:-Unbekannt}
-		# FIELD: cuts (noch nicht unterstuetzt)
-		cuts[$i]="0"
+		# FIELD: Cuts
+		cuts[$i]=`grep "<cuts>" $cl | egrep -o "[0-9]+"`
 		# FIELD: Comment
 		tmp=`grep "<usercomment>" $cl`
 		tmp=${tmp%<*}
