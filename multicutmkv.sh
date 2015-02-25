@@ -388,7 +388,6 @@ function findBestCutlist ()
 		tmp=`grep NoOfCuts $cl`
 		tmp=${tmp%[[:cntrl:]]} # letztes zeichen loeschen (\r)
 		cuts[$i]=${tmp#NoOfCuts=}
-		echo "$tmp"
 		# FIELD: Comment
 		tmp=`grep UserComment $cl`
 		tmp=${tmp%[[:cntrl:]]} # letztes zeichen loeschen (\r)
