@@ -778,39 +778,44 @@ function cutfilm ()
 
 	project_start "$film"
 	getFtype $film
-	lines=$( egrep "^(Start|Duration)=" "$cutlist" | tr -d "\r" )
 	fps=$( grep FramesPerSecond "$cutlist" | tr -d "\r" | sed 's/FramesPerSecond=//' )
+	lines=$( egrep "^(Start|Duration)=" "$cutlist" | tr -d "\r" )
+	numCuts=$( echo $lines | wc -w )
+	numCuts=$(( numCuts / 2 ))
+	curCut=0
 	for line in $lines ; do
 		if echo $line | grep -q "Start" ; then  ######### startcut ##########
-		startcut="${line##*=}"
-		secs="${startcut%%.*}"
-		decimalsecs=$[ 10#${startcut##*.} ]
-		decimalsecs=${decimalsecs::2}
+			let curCut++
+			echo -e "${c_info}Cut $curCut of $numCuts${c_end}"
+			startcut="${line##*=}"
+			secs="${startcut%%.*}"
+			decimalsecs=$[ 10#${startcut##*.} ]
+			decimalsecs=${decimalsecs::2}
 
-		frames=`echo "$startcut * $fps + 0.5" | bc` # +0.5 zum runden...
-		frames=${frames%%.*}
-		sframe=$frames
-		sdecimalsecs=$decimalsecs
+			frames=`echo "$startcut * $fps + 0.5" | bc` # +0.5 zum runden...
+			frames=${frames%%.*}
+			sframe=$frames
+			sdecimalsecs=$decimalsecs
 
- 
+	 
 
-		if [ $cutwith == "avidemux" ]; then
-			avidemillis=$(echo "$startcut*1000"|bc -l)
-			millis=$( findclosesttime ${avidemillis} $film)
-			echo -n "adm.addSegment(0, $millis, " >> project.py
-		elif [ $cutwith == "avisplit" ] ; then
-			time=$( $DATE -u -d @$secs +%T )		# wandelt sekunden.dezimalen in hh:mm:ss um...
-			frames=$(( ${decimalsecs:-0} / 4 ))		# frames ausrechnen runden ist egal
-			cuts=$cuts$time.$frames-			# hh:mm:ss.ms (ms ist frames, nicht millisekunden!!)
-		elif [ $cutwith == "smartmkvmergeavconv" ] ; then
-			echo -n ""
-		elif [ $cutwith == "smartmkvmerge" ] ; then
-			echo -n ""
-		else
-			markerB[$markercnt]=$(( $secs*25 + ${decimalsecs:-0} / 4 - $markersminus))
-			let markersminus=$markersminus+${markerB[$markercnt]}-${markerA[$markercnt]}
-			let markercnt++
-		fi
+			if [ $cutwith == "avidemux" ]; then
+				avidemillis=$(echo "$startcut*1000"|bc -l)
+				millis=$( findclosesttime ${avidemillis} $film)
+				echo -n "adm.addSegment(0, $millis, " >> project.py
+			elif [ $cutwith == "avisplit" ] ; then
+				time=$( $DATE -u -d @$secs +%T )		# wandelt sekunden.dezimalen in hh:mm:ss um...
+				frames=$(( ${decimalsecs:-0} / 4 ))		# frames ausrechnen runden ist egal
+				cuts=$cuts$time.$frames-			# hh:mm:ss.ms (ms ist frames, nicht millisekunden!!)
+			elif [ $cutwith == "smartmkvmergeavconv" ] ; then
+				echo -n ""
+			elif [ $cutwith == "smartmkvmerge" ] ; then
+				echo -n ""
+			else
+				markerB[$markercnt]=$(( $secs*25 + ${decimalsecs:-0} / 4 - $markersminus))
+				let markersminus=$markersminus+${markerB[$markercnt]}-${markerA[$markercnt]}
+				let markercnt++
+			fi
 		else					######### endcut ############
 			length="${line##*=}"
 			if [ $cutwith == "avisplit" ] ; then
@@ -840,8 +845,7 @@ function cutfilm ()
 					skeyframe=$(findkeyframebeforeframe $sframe $film)
 					local tmp
 					# encode
-					echo -e "${c_info}start: $sframe${c_end}"
-					echo -e "${c_info}end:   $frames${c_end}"
+					echo -e "${c_info}start: $sframe${c_end}	${c_info}end:  	$((sframe + frames))${c_end}	${c_info}length:   $frames${c_end}"
 
 					if iskeyframe $sframe $film; then
 						echo start ist keyframe
