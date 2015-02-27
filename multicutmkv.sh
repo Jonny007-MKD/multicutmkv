@@ -37,9 +37,9 @@
 # CONFIG
 #######################
 # set -ix
-# VORSICHT: tempdir wird komplett geleert!! Vorgabewert is empfehlenswert
 tempdir="/tmp/multicut"
 #tempdir="/mnt/cleartemp/multicut"
+
 # lokale cutlists (aktueller ordner) verwenden? name ist egal, wird nach inhalt ausgewaehlt
 # KEIN vorrang vor heruntergeladenen cutlists bei aktiviertem download und automatischem modus
 # 0: nein, 1: ja
@@ -837,7 +837,7 @@ function cutfilm ()
 					millis=$( findclosesttime $tmp $film)
 					echo "${millis})" >> project.py  
 				elif [ $cutwith == "smartmkvmerge" ] || [ $cutwith == "smartmkvmergeavconv" ]; then
-					echo "$length $startcut"
+					echo "Length: $length, Start cut: $startcut"
 					tmp=$(echo "${startcut} + ${length}"|bc -l)
 					audio_timecodes="${audio_timecodes},+$(get_timecode $startcut)-$(get_timecode $tmp)"
 					#	  echo startframe: $sframe
@@ -1167,6 +1167,7 @@ while [ "$1" != "${1#-}" ] ; do	# solange der naechste parameter mit "-" anfaeng
 	nl) local=0;;
 	d) download=1;;
 	o) outputdir="$2";shift;;
+	t) tempdir="$2";shift;;
 	nd) download=0;;
 	c) check=1;;
 	nc) check=0;;
@@ -1182,42 +1183,41 @@ done
 # benoetigte ordner (falls nicht vorhanden) erstellen
 workdir="$(pwd)"
 
+if [ $# -eq 0 ]; then
+	echo "Aufruf: $0 <Optionen> <Film>"
+	exit 2
+fi
+
 if [ ! -d "$tempdir" ] ; then
-	mkdir $tempdir
+	mkdir -p $tempdir
 	chmod 777 $tempdir
 	if [ ! -d "$tempdir" ] ; then
 		echo -e "${c_error}Temporaerer Ordner $tempdir nicht gefunden!$c_end" >&2
 		exit 3
 	fi
 fi
-if [ $# -ne 0 ]; then
-	tmp=$(find $tempdir -name "`basename $1`*" | tail -n 1)
-	if [ $? -eq 0 -a -n "$tmp" ]; then
-		tempdir=$(dirname $tmp)
-	else
-		tempdir="$tempdir/$$"
-		mkdir -p "$tempdir"
-	fi
+
+tmp=$(find $tempdir -name "`basename $1`*" | tail -n 1)
+if [ $? -eq 0 -a -n "$tmp" ]; then
+	tempdir=$(dirname $tmp)
 else
-	echo "Aufruf: $0 <Optionen> <Film>"
-	exit 2
+	tempdir="$tempdir/$$"
+	mkdir -p "$tempdir"
 fi
 
 tempdir=${tempdir%/}
-if [[ "${outputdir:0:1}" != "/" ]]
-then
+if [[ "${outputdir:0:1}" != "/" ]]; then
 	outputdir=${workdir}/${outputdir}
 fi
 cutdir="${outputdir}"
-if [ ! -d "${outputdir}" ] ; then
+if [ ! -d "${outputdir}" ]; then
 	mkdir -p "${outputdir}"
 fi
 
 # zu schneidende dateien durchgehen...
 file=$@
 cd "${workdir}"
-if [[ ${file:0:1} != "/" ]]
-then
+if [[ ${file:0:1} != "/" ]]; then
 	file=`cd "${file%/*}" 2>/dev/null ; pwd`/"${file##*/}"	# absoluten dateinamen ermitteln
 fi
 if [ ! -e $file ]; then
@@ -1225,7 +1225,7 @@ if [ ! -e $file ]; then
 	exit 4
 fi
 
-# lokale cutlists kopieren (passende wird nach inhalt ausgewaehlt)
+# lokale cutlists kopieren (passende wird nach Inhalt ausgewaehlt)
 [ $local -ne 0 ] && cp *.cutlist $tempdir 2>/dev/null
 
 cd "${outputdir}"
