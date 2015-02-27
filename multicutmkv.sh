@@ -88,10 +88,15 @@ function cleanup()
 	if [ $# -eq 0 ]; then
 		exit 1
 	fi
-	if [ $1 -eq 0 ]; then		# Delete only when successful
-		rm -rf $tempdir
-	fi
-	exit $1
+	case $1 in
+		 0) ;&					# if successful
+		10)						# or cutlist not found
+			rm -rf $tempdir
+			;&
+		 *)
+			exit $1
+			;;
+	esac
 }
 
 trap 'cleanup' 1 2 3 6 9 13 14 15
