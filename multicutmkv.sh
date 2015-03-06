@@ -90,6 +90,7 @@ function cleanup()
 	fi
 	case $1 in
 		 0) ;&					# if successful
+		 4) ;&					# or input file not found
 		10)						# or cutlist not found
 			rm -rf $tempdir
 			;&
@@ -1202,11 +1203,11 @@ if [ ! -d "$tempdir" ] ; then
 	fi
 fi
 
-tmp=$(find $tempdir -name "`basename $1`*" | tail -n 1)
+tmp=$(find $tempdir -name "`basename $1`.*" | tail -n 1)
 if [ $? -eq 0 -a -n "$tmp" ]; then
 	tempdir=$(dirname $tmp)
 else
-	tempdir="$tempdir/$$"
+	tempdir="${tempdir%/}/$$"
 	mkdir -p "$tempdir"
 fi
 
@@ -1227,7 +1228,7 @@ if [[ ${file:0:1} != "/" ]]; then
 fi
 if [ ! -e $file ]; then
 	echo "Specified file ($file) does not exist!"
-	exit 4
+	cleanup 4
 fi
 
 # lokale cutlists kopieren (passende wird nach Inhalt ausgewaehlt)
