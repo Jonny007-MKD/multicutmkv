@@ -73,6 +73,10 @@ min_rating=3
 # anfang und ende werden auch gezeigt
 check=0
 
+# Ausgabe-Ausführlichkeit
+# 0: nichts, 1: Fehler, 2: Warnungen, 3: Info
+echoLevel=3
+
 # Farben - auskommentieren wenn man keine farben moechte
 c_filename="\033[00;34m"
 c_author="\033[01;37;40m"
@@ -134,24 +138,34 @@ fi
 
 x264_opts=""
 
+function log {
+	if [ $1 -le $echoLevel ]; then							# if we shall echo this message
+		if [ $1 -eq 1 ]; then
+			echo -e "${c_error}$2${c_end}" >&2								# redirect error to stderr
+		else
+			echo -e "$2${c_end}"
+		fi
+	fi
+}
+
 function check_dependencies1()
 {
 	local pist=0;
 	if ! type gawk >/dev/null 2>&1 ; then
-		echo -e "${c_error}Please install gawk!" >&2
+		log 1 "Please install gawk!"
 		pist=1;
 	fi
 	if ! type bc >/dev/null 2>&1 ; then
-		echo -e "${c_error}Please install bc!" >&2
+		log 1 "Please install bc!"
 		pist=1;
 	fi
 	if ! type $MEDIAINFO >/dev/null 2>&1 ; then
-		echo -e "${c_error}Please install mediainfo!" >&2
+		log 1 "Please install mediainfo!"
 		pist=1;
 	fi
 
 	if [ $pist -ne 0 ]; then
-		exit 126;
+		cleanup 126;
 	fi
 }
 function check_dependencies2()
@@ -159,48 +173,48 @@ function check_dependencies2()
 	local pist=0
 	if [ $cutwith == "avidemux" ]; then
 		if ! type $avidemux > /dev/null 2>&1 ; then
-			echo -e "${c_error}Please install avidemux!" >&2
+			log 1 "Please install avidemux!"
 			pist=1;
 		fi
 		if ! type $MKVMERGE > /dev/null 2>&1 ; then
-			echo -e "${c_error}Please install mkvtoolnix" >&2
+			log 1 "Please install mkvtoolnix"
 			pist=1
 		fi
 	elif [ $cutwith == "avisplit" ]; then
 		if ! type avisplit > /dev/null 2>&1 ; then
-			echo -e "${c_error}Please install 'transcode'!" >&2
+			log 1 "Please install 'transcode'!"
 			pist=1
 		fi
 	elif [ $cutwith == "smartmkvmerge" ]; then
 		if ! type $MKVMERGE > /dev/null 2>&1 ; then
-			echo -e "${c_error}Please install mkvtoolnix" >&2
+			log 1 "Please install mkvtoolnix"
 			pist=1
 		fi
 		if ! type $FFMSINDEX > /dev/null 2>&1 ; then
-			echo -e "${c_error}Please install ffmsindex" >&2
+			log 1 "Please install ffmsindex"
 			pist=1
 		fi
 		if ! type $X264 > /dev/null 2>&1 ; then
-			echo -e "${c_error}Please install x264" >&2
+			log 1 "Please install x264"
 			pist=1
 		fi
 		if ! type avxFrameServer > /dev/null 2>&1 ; then
-			echo -e "${c_error}Please make and install avxsynth" >&2
+			log 1 "Please make and install avxsynth"
 			pist=1
 		fi
 	elif [ $cutwith == "smartmkvmergeavconv" ]; then
 		if ! type $AVCONV > /dev/null 2>&1 ; then
-			echo -e "c_error Please install libav-tools"
+			log 1 "Please install libav-tools"
 			pist=1
 		fi
 		if ! type $MKVMERGE > /dev/null 2>&1 ; then
-			echo -e "${c_error}Please install mkvtoolnix" >&2
+			log 1 "Please install mkvtoolnix"
 			pist=1
 		fi
 	fi
 
 	if [ $pist -ne 0 ]; then
-		exit 126;
+		cleanup 126;
 	fi
 }
 
@@ -317,7 +331,7 @@ function dlCutlists ()
 { # filename
 	cd "$workdir"
 	filename="${1}"
-	echo -en "${c_info}Suche cutlists fuer ${filename##*/}...$c_end"
+	log 3 "${c_info}Suche cutlists fuer ${filename##*/}..."
 	if [[ $(uname) != "Linux" ]]
 	then
 		search=$(stat -f %z "$filename")
@@ -342,7 +356,7 @@ function dlCutlist ()
 	wget -q -O "${cutlist[$idx]}" "${url[$idx]}"
 	# "FIELD": Cutlist-Format
 	if [ ! -f "${cutlist[$idx]}" ]; then
-		echo -e "${c_error}Dowloading cutlist failed!" >&2
+		log 1 "Dowloading cutlist failed!"
 		cleanup 11
 	fi
 	if grep -q "StartFrame=" "${cutlist[$idx]}" ; then
@@ -350,7 +364,7 @@ function dlCutlist ()
 	elif grep -q "Start=" "${cutlist[$idx]}" ; then
 		vcf2format[$idx]=0
 	else
-		echo -e "${c_error}unbekanntes Cutlist-Format: ${cutlist[$idx]}" >&2
+		log 1 "unbekanntes Cutlist-Format: ${cutlist[$idx]}"
 		cleanup 12
 	fi
 }
@@ -359,10 +373,10 @@ function dlCutlist ()
 #############################################################
 function findBestCutlist ()
 { # filename
-	echo "Filtere Cutlists nach gegebenen Kriterien..."
+	log 3 "Filtere Cutlists nach gegebenen Kriterien..."
 	cd $tempdir
 	unset cutlist
-	# echo $(ls)
+	# log 4 $(ls)
 	filename="${1##*/}"
 	filename="${filename%TVOON*}"
 	i=1
@@ -382,7 +396,7 @@ function findBestCutlist ()
 		elif grep -q "Start=" $cl ; then
 			vcf2format[$i]=0
 		else
-			echo -e "${c_error}Unbekanntes Cutlist-Format: ${cl##*/}" >&2
+			log 1 "Unbekanntes Cutlist-Format: ${cl##*/}"
 			continue # cutlist ignorieren, unbekanntes format...
 		fi
 		# FIELD: Author
@@ -490,14 +504,14 @@ function findBestCutlist ()
 	done
 
 	if [ ${#cutlist[@]} -eq 0 ] ; then
-		echo -e "${c_error}Keine passende Cutlist fuer $c_filename$filename$c_error gefunden. Abbruch.$c_end" >&2
+		log 1 "Keine passende Cutlist fuer $c_filename$filename$c_error gefunden. Abbruch."
 		return 0
 	fi
 	sortCutlists		# gesammelte cutlists nach "qualitaet" sortieren
 	(( $automode > 0 )) && return 1	# interaktive auswahl nicht noetig, ersten eintrag der arrays verwenden
 	# interaktive auswahl...
 	clear
-	echo -e "\n$c_info Fuer die Datei $c_filename$filename$c_end wurden folgende cutlists gefunden:$c_end\n\n"
+	log 3 "\n$c_info Für die Datei $c_filename$filename$c_end wurden folgende cutlists gefunden:$c_end\n\n"
 	i=2
 	#  while [ $i -le ${#cutlist[@]} ] ; do
 	for ((i=0;i<=${#cutlist[@]};i++))
@@ -509,21 +523,21 @@ function findBestCutlist ()
 		fi
 		printf "$c_selection[%d]$c_end\t%s von $c_author %s $c_end\n\tAutor-Wertung: $c_rating %d $c_end\t\tUser-Wertung: $c_rating %s $c_end (%d Stimmen)\n\tFormat: %s\tAnzahl Schnitte: $c_cuts %d $c_end\n\tKommentar: %s\n" $((i+1)) "${cutlist[$i]}" "${author[$i]}" "${rating[$i]}" "${userrating[$i]%|*}" "${userrating[$i]#*|}" "$format_string" "${cuts[$i]}" "${comment[$i]}"
 		if [ -n "${error[$i]}" ] ; then
-			echo -e "\t$c_error${error[$i]}$c_end" >&2
+			log 1 "\t${error[$i]}"
 		fi
 		if [ -n "${content[$i]}" ] ; then
-			echo -e "\t${content[$i]}"
+			log 3 "\t${content[$i]}"
 		fi
 		if [ -n "${errordesc[$i]}" ] ; then
-			echo -e "\t${errordesc[$i]}"
+			log 3 "\t${errordesc[$i]}"
 		fi
 		if [ -n "${url[$i]}" ] ; then
-			echo -e "\t$c_info Online - ${url[$i]%/*} $c_end"
+			log 3 "\t$c_info Online - ${url[$i]%/*}"
 		fi
 		echo
 		#  let i++
 	done
-	printf "$c_selection[0]$c_end\tKeine Auswahl. Diesen Film nicht schneiden.\n\n\n"
+	log 3 "$c_selection[0]$c_end\tKeine Auswahl. Diesen Film nicht schneiden.\n\n\n"
 	read -p "Auswahl: " ret
 	# FIXME hier koennte noch ein plausi-check erfolgen...
 	return $ret
@@ -619,7 +633,7 @@ function findclosesttime()
 	then
 		$FFMSINDEX $FFMSINDEX_X_ARGS -k -p -c -f $film ${film##*/}.ffindex
 		if [ ! -f "${kflist}" ]; then
-			echo -e "${c_error}ffmsindex failed" >&2
+			log 1 "ffmsindex failed"
 			cleanup 20
 		fi
 	fi
@@ -627,11 +641,10 @@ function findclosesttime()
 	danach=$(cat millis $kflist|grep -v "#"| sort -n | grep -A 1 $millis |tail -n1)
 	davor=$(cat millis $kflist|grep -v "#"| sort -n | grep -B 1 $millis |head -n1)
 
-	if [[ $(echo "$danach - $millis"|bc -l|sed 's/\.//') -gt $(echo "$millis - $davor"|bc -l |sed 's/\.//') ]]
-	then
-		echo $danach
+	if [[ $(echo "$danach - $millis"|bc -l|sed 's/\.//') -gt $(echo "$millis - $davor"|bc -l |sed 's/\.//') ]];	then
+		log 3 $danach
 	else
-		echo $davor
+		log 3 $davor
 	fi
 }
 
@@ -649,7 +662,7 @@ function findkeyframeafterframe()
 	then
 		$FFMSINDEX $FFMSINDEX_X_ARGS -k -p -c -f $film ${film##*/}.ffindex
 		if [ ! -f "${kflist}" ]; then
-			echo -e "${c_error}ffmsindex failed" >&2
+			log 1 "ffmsindex failed"
 			cleanup 20
 		fi
 	fi
@@ -658,7 +671,7 @@ function findkeyframeafterframe()
 	case $keyframe in
 	*#*) keyframe=0;;
 	esac
-	echo $keyframe
+	log 3 $keyframe
 }
 
 function iskeyframe()
@@ -674,7 +687,7 @@ function iskeyframe()
 	then
 		$FFMSINDEX $FFMSINDEX_X_ARGS -k -p -c -f $film ${film##*/}.ffindex
 		if [ ! -f "${kflist}" ]; then
-			echo -e "${c_error}ffmsindex failed" >&2
+			log 1 "ffmsindex failed"
 			cleanup 20
 		fi
 	fi
@@ -696,13 +709,13 @@ function convertframestostime ()
 	then
 		$FFMSINDEX $FFMSINDEX_X_ARGS -k -p -c -f $film ${film##*/}.ffindex
 		if [ ! -f "${kflist}" ]; then
-			echo -e "${c_error}ffmsindex failed" >&2
+			log 1 "ffmsindex failed"
 			cleanup 20
 		fi
 	fi
 	local tmp
 	timev=$(awk "NR==$((frame+2)) {print;exit}"  $list)
-	echo "$timev / 1000"|bc -l
+	echo "$timev / 1000" | bc -l
 }
 
 
@@ -720,7 +733,7 @@ function findkeyframebeforeframe()
 	then
 		$FFMSINDEX $FFMSINDEX_X_ARGS -k -p -c -f $film ${film##*/}.ffindex
 		if [ ! -f "${kflist}" ]; then
-			echo -e "${c_error}ffmsindex failed" >&2
+			log 1 "fmsindex failed"
 			cleanup 20
 		fi
 	fi
@@ -729,7 +742,7 @@ function findkeyframebeforeframe()
 	case $keyframe in
 	*#*) keyframe=0;;
 	esac
-	echo $keyframe
+	log 3 $keyframe
 }
 
 function get_timecode()
@@ -740,7 +753,7 @@ function get_timecode()
 	tmp=$1
 	subsec=${tmp#*.}
 	subsec=${subsec:0:7}
-	echo -e "$($DATE -u -d @${tmp} +%T).${subsec:-0}"
+	log 3 "$($DATE -u -d @${tmp} +%T).${subsec:-0}"
 }
 
 # schneide datei mit gegebener cutlist
@@ -760,7 +773,7 @@ function cutfilm ()
 	markersminus=0
 	markerA[0]=0
 	cd "$tempdir"
-	if ! [ $(echo $film|grep -qv "\.mkv" ) ]
+	if ! [ $(echo $film | grep -qv "\.mkv" ) ]
 	then
 		if [ $cutwith == "avidemux" ] || [ $cutwith == "smartmkvmergeavconv" ]
 		then
@@ -770,13 +783,13 @@ function cutfilm ()
 				if [ $? -eq 0 ]; then
 					touch "${tempdir}/mkv.ok"
 				else
-					echo -e "${c_error}mkvmerge failed" >&2
+					log 1 "mkvmerge failed" 
 					cleanup 21
 				fi
 			fi
 			film="${tempdir}/$(basename $film).mkv"
 			if [ ! -f $film ]; then
-				echo -e "${c_error}mkvmerge failed" >&2
+				log 1 "mkvmerge failed"
 				cleanup 21
 			fi
 		fi
@@ -792,7 +805,7 @@ function cutfilm ()
 	for line in $lines ; do
 		if echo $line | grep -q "Start" ; then  ######### startcut ##########
 			let curCut++
-			echo -e "${c_info}Cut $curCut of $numCuts${c_end}"
+			log 3 "${c_info}Cut $curCut of $numCuts"
 			startcut="${line##*=}"
 			secs="${startcut%%.*}"
 			decimalsecs=$[ 10#${startcut##*.} ]
@@ -814,9 +827,9 @@ function cutfilm ()
 				frames=$(( ${decimalsecs:-0} / 4 ))		# frames ausrechnen runden ist egal
 				cuts=$cuts$time.$frames-			# hh:mm:ss.ms (ms ist frames, nicht millisekunden!!)
 			elif [ $cutwith == "smartmkvmergeavconv" ] ; then
-				echo -n ""
+				true
 			elif [ $cutwith == "smartmkvmerge" ] ; then
-				echo -n ""
+				true
 			else
 				markerB[$markercnt]=$(( $secs*25 + ${decimalsecs:-0} / 4 - $markersminus))
 				let markersminus=$markersminus+${markerB[$markercnt]}-${markerA[$markercnt]}
@@ -838,31 +851,31 @@ function cutfilm ()
 
 				if [ $cutwith == "avidemux" ] ; then
 					tmp=$(echo "$avidemillis+(${length}*1000)"|bc -l)
-					echo "findclosesttime $tmp)"
+					log 3 "findclosesttime $tmp)"
 					# millis=$( findclosesttime $((secs+${length%.*}))$((sdecimalsecs/1000 + decimalsecs/1000)).$((sdecimalsecs % 1000 * 1000 + decimalsecs%1000 * 1000)) $film)
 					millis=$( findclosesttime $tmp $film)
 					echo "${millis})" >> project.py  
 				elif [ $cutwith == "smartmkvmerge" ] || [ $cutwith == "smartmkvmergeavconv" ]; then
-					echo "Length: $length, Start cut: $startcut"
+					log 3 "Length: $length, Start cut: $startcut"
 					tmp=$(echo "${startcut} + ${length}"|bc -l)
 					audio_timecodes="${audio_timecodes},+$(get_timecode $startcut)-$(get_timecode $tmp)"
-					#	  echo startframe: $sframe
-					#	  echo duration: $frames # endframe
+					#	  log 4 "startframe: $sframe"
+					#	  log 4 "duration: $frames" # endframe
 					skeyframe=$(findkeyframebeforeframe $sframe $film)
 					local tmp
 					# encode
-					echo -e "${c_info}start: $sframe${c_end}	${c_info}end:  	$((sframe + frames))${c_end}	${c_info}length:   $frames${c_end}"
+					log 3 "${c_info}start: $sframe${c_end}	${c_info}end:  	$((sframe + frames))${c_end}	${c_info}length:   $frames"
 
 					if iskeyframe $sframe $film; then
-						echo start ist keyframe
+						log 3 "start ist keyframe"
 						if iskeyframe $((sframe + frames)) $film; then
-							echo end ist keyframe
+							log 3 "end ist keyframe"
 							# das gesamte geforderte Häppchen endet und beginnt auf keyframes
 							# FIXME - Beschränkung: maximal 9 Cuts sind so pro Film möglich.
 							video_splitframes="${video_splitframes},$sframe-$((sframe + frames))"
 							video_files[${#video_files[@]}]=video_copy-00${checkcnt}.mkv
 						else
-							echo end ist kein keyframe
+							log 3 end ist kein keyframe
 							# das häppchen startet mit keyframe aber endet nicht aufkeyframe
 							lkeyframe=$(findkeyframebeforeframe $((sframe + frames)) $film)
 							ulkeyframe=$lkeyframe
@@ -876,7 +889,7 @@ function cutfilm ()
 							if [ $cutwith == "smartmkvmerge" ] && [ ! -f $outputfilename.ok ] ; then
 								$X264 $X264_X_ARGS $x264_opts --index ${tempdir}/x264.index --seek $lkeyframe --frames $((frames-ulkeyframe+sframe)) --output $outputfilename $film
 								if [ $? -ne 0 ] || [ ! -f $outputfilename ] || [ $(stat -c %s "$outputfilename") -eq 0 ]; then
-									echo -e "${c_error}x264 failed" >&2
+									log 1 "x264 failed"
 									cleanup 22
 								else
 									touch $outputfilename.ok
@@ -897,7 +910,7 @@ function cutfilm ()
 							video_splitframes="${video_splitframes},$sframe-$lkeyframe"
 						fi
 					else
-						echo start ist kein keyframe
+						log 3 "start ist kein keyframe"
 						asframe=$(findkeyframeafterframe $sframe $film)
 						eframes=$((asframe-sframe))
 						if (( $asframe  > $sframe + $frames )); then
@@ -907,7 +920,7 @@ function cutfilm ()
 						if [ $cutwith == "smartmkvmerge" ] && [ ! -f $outputfilename.ok ] ; then
 							$X264 $X264_X_ARGS $x264_opts --index ${tempdir}/x264.index --seek $sframe --frames $((eframes)) --output $outputfilename $film
 							if [ $? -ne 0 ] || [ ! -f $outputfilename ] || [ $(stat -c %s "$outputfilename") -eq 0 ]; then
-								echo -e "${c_error}x264 failed" >&2
+								log 1 "x264 failed"
 								cleanup 22
 							else
 								touch $outputfilename.ok
@@ -927,7 +940,7 @@ function cutfilm ()
 						video_files[${#video_files[@]}]=$outputfilename
 
 						if iskeyframe $((sframe + frames)) $film; then
-							echo end ist keyframe
+							log 3 "end ist keyframe"
 							# start ist kein keyframe aber ende
 							if (($frames+$sframe > $asframe )); then
 								video_splitframes="${video_splitframes},$asframe-$((frames+sframe))"
@@ -935,7 +948,7 @@ function cutfilm ()
 								video_files[${#video_files[@]}]=video_copy-00${checkcnt}.mkv
 							fi
 						else
-							echo end ist kein keyframe
+							log 3 "end ist kein keyframe"
 							# weder start noch ende sind keyframes
 							if (($frames+$sframe > $asframe )); then
 								beframe=$(findkeyframebeforeframe $((sframe + frames)) $film)
@@ -950,7 +963,7 @@ function cutfilm ()
 								if [ $cutwith == "smartmkvmerge" ] && [ ! -f $outputfilename.ok ] ; then
 									$X264 $X264_X_ARGS $x264_opts  --index ${tempdir}/x264.index --seek $beframe --frames $((sframe+frames-beframe)) --output $outputfilename $film
 									if [ $? -ne 0 ] || [ ! -f $outputfilename ] || [ $(stat -c %s "$outputfilename") -eq 0 ]; then
-										echo -e "${c_error}x264 failed" >&2
+										log 1 "x264 failed"
 										cleanup 22
 									else
 										touch $outputfilename.ok
@@ -963,7 +976,7 @@ function cutfilm ()
 										preseek=$(echo ${avstime%.*}-30|bc)
 									fi
 									avstime=$(echo ${avstime} - $preseek| bc -l )
-									echo $sframe $frames $beframe
+									log 3 "$sframe $frames $beframe"
 									$AVCONV $AVCONV_X_ARGS -ss $preseek -i "${film}"  -ss $avstime $avconvopts  -vframes $((sframe+frames-beframe)) ${outputfilename}.avi
 									$MKVMERGE $MKVMERGE_X_ARGS -o "${outputfilename}" "${outputfilename}.avi"
 								fi	
@@ -1014,43 +1027,40 @@ function cutfilm ()
 		$MKVMERGE $MKVMERGE_X_ARGS --engage no_cue_duration --engage no_cue_relative_position --ui-language en_US -o $outname ${vfiles} ${afiles}
 		ecode=$?
 		if (( $ecode < 2 )) && [ -f "$outname" ] ; then
-			echo "$name erfolgreich geschnitten!"
+			log 3 "$name erfolgreich geschnitten!"
 			if (( $ecode == 1 )) 
 			then
-				echo "mkvmerge hat Warnungen ausgegeben - bitte Ausgabedatei auf Abspielbarkeit prüfen."
+				log 2 "mkvmerge hat Warnungen ausgegeben - bitte Ausgabedatei auf Abspielbarkeit prüfen."
 			fi
 		else
-			echo "Es ist Fehler $ecode aufgetreten! $name moeglicherweise nicht geschnitten!"
+			log 1 "Es ist Fehler $ecode aufgetreten! $name moeglicherweise nicht geschnitten!"
 			cleanup 21
 		fi
 	elif [ $cutwith == "avisplit" ] ; then
 		cuts=${cuts%,}	# letztes komma abtrennen...
-		echo "Uebergebe die errechneten Cuts an avisplit..."
-		echo avisplit -i $film -o "$outname" -t $cuts -c
+		log 3 "Uebergebe die errechneten Cuts an avisplit..."
+		log 4 "avisplit -i $film -o "$outname" -t $cuts -c"
 		# Auftrag an avisplit uebergeben... (mergen wird hier durch -c auch erreicht)
 		avisplit -i "$film" -o "$outname" -t $cuts -c >/dev/null
 		if [ $? -eq 0 ] ; then
-			echo "$name erfolgreich geschnitten!"
+			log 3 "$name erfolgreich geschnitten!"
 		else
-			echo "Avisplit hat einen Fehler gemeldet! $name moeglicherweise nicht geschnitten!"
+			log 1 "Avisplit hat einen Fehler gemeldet! $name moeglicherweise nicht geschnitten!"
 			return
 		fi
 	else # zeige stellen zum schneiden an
-		echo "Jede nachfolgende Zeile steht fuer einen Werbeblock (Frameposition). Positionieren Sie die Marker, und optimieren Sie ihre Position."
-		echo "Die nachfolgende Zeile gibt die Frameposition NACH dem herausschneiden aller vorherigen Bloecke an."
-		echo
+		log 3 "Jede nachfolgende Zeile steht fuer einen Werbeblock (Frameposition). Positionieren Sie die Marker, und optimieren Sie ihre Position."
+		log 3 "Die nachfolgende Zeile gibt die Frameposition NACH dem herausschneiden aller vorherigen Bloecke an.\n"
 		cnt=0
 		while [ $cnt -le $markercnt ] ; do
-			echo -e "A: ${markerA[$cnt0]}\t B: ${markerB[$cnt]}"
+			log 3 "A: ${markerA[$cnt0]}\t B: ${markerB[$cnt]}"
 			let cnt++
 		done
-		echo
-		echo "Bitte stellen Sie Ihre verbesserte Cutlist auf http://cutlist.de zur Verfuegung, die Community kann nur funktionieren, wenn alle mitarbeiten!"
-		echo
+		log 3 "\nBitte stellen Sie Ihre verbesserte Cutlist auf http://cutlist.de zur Verfuegung, die Community kann nur funktionieren, wenn alle mitarbeiten!\n"
 	fi
 	## schnittstellen ueberpruefen
 	[ $check -eq 1 ] && type mplayer >/dev/null && read -p "Zur Ueberpruefung der Schnittstellen bitte Taste druecken..." -n 1
-	echo "Schnitte bei folgenden Zeiten:"
+	log 3 "Schnitte bei folgenden Zeiten:"
 	i=0
 	while [ $i -lt ${#checktimes[@]} ] ; do
 		$DATE -u -d @${checktimes[$i]} +%T
@@ -1180,6 +1190,7 @@ while [ "$1" != "${1#-}" ] ; do	# solange der naechste parameter mit "-" anfaeng
 	i) automode=0;;
 	a) automode=1;;
 	m) min_rating=$2; shift;;
+	q) echoLevel=1;;
 	*) help; exit 0;;
 	esac
 	shift
@@ -1191,15 +1202,15 @@ workdir="$(pwd)"
 
 if [ $# -eq 0 ]; then
 	echo "Aufruf: $0 <Optionen> <Film>"
-	exit 2
+	cleanup 2
 fi
 
 if [ ! -d "$tempdir" ] ; then
 	mkdir -p $tempdir
 	chmod 777 $tempdir
 	if [ ! -d "$tempdir" ] ; then
-		echo -e "${c_error}Temporaerer Ordner $tempdir nicht gefunden!$c_end" >&2
-		exit 3
+		log 1 "Temporaerer Ordner $tempdir nicht gefunden!"
+		cleanup 3
 	fi
 fi
 
@@ -1227,7 +1238,7 @@ if [[ ${file:0:1} != "/" ]]; then
 	file=`cd "${file%/*}" 2>/dev/null ; pwd`/"${file##*/}"	# absoluten dateinamen ermitteln
 fi
 if [ ! -e $file ]; then
-	echo "Specified file ($file) does not exist!"
+	log 1 "Specified file ($file) does not exist!"
 	cleanup 4
 fi
 
@@ -1250,16 +1261,16 @@ if [ -n "${url[$usecl]}" ] ; then
 	dlCutlist $usecl
 fi
 format_string=$( [ ${vcf2format[$usecl]} -eq 1 ] && echo "VCF2Cutlist-Standard" || echo "Assistant-Standard" )
-printf "\nSchneide Film $c_filename%s$c_end mit folgender Cutlist:\n\n%s von $c_author %s $c_end\nAutor-Wertung: $c_rating %d $c_end\t\tUser-Wertung: $c_rating %s $c_end (%d Stimmen)\nFormat: %s\tAnzahl Schnitte: $c_cuts %d $c_end\nKommentar: %s\n" ${file##*/} "${cutlist[$usecl]}" "${author[$usecl]}" "${rating[$usecl]}" "${userrating[$usecl]%|*}" "${userrating[$usecl]#*|}" "$format_string" "${cuts[$usecl]}" "${comment[$usecl]}"
-echo URL: ${url[$usecl]}
+log 3 "Schneide Film $c_filename${file##*/}$c_end mit folgender Cutlist:\n${cutlist[$usecl]} von $c_author ${author[$usecl]} $c_end\nAutor-Wertung: $c_rating ${rating[$usecl]} $c_end\t\tUser-Wertung: $c_rating ${userrating[$usecl]%|*} $c_end (${userrating[$usecl]#*|} Stimmen)\nFormat: $format_string\tAnzahl Schnitte: $c_cuts ${cuts[$usecl]} $c_end\nKommentar: ${comment[$usecl]}"
+log 4 URL: ${url[$usecl]}
 if [ -n "${error[$usecl]}" ] ; then
-	echo -e "$c_error${error[$usecl]}$c_end" >&2
+	log 1 "${error[$usecl]}"
 fi
 if [ -n "${content[$usecl]}" ] ; then
-	echo -e "${content[$usecl]}"
+	log 3 "${content[$usecl]}"
 fi
 if [ -n "${errordesc[$usecl]}" ] ; then
-	echo -e "${errordesc[$usecl]}"
+	log 3 "${errordesc[$usecl]}"
 fi
 cutfilm "$file" "${cutlist[$usecl]}" "${vcf2format[$usecl]}"
 
