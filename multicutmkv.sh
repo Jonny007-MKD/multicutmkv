@@ -642,9 +642,9 @@ function findclosesttime()
 	davor=$(cat millis $kflist|grep -v "#"| sort -n | grep -B 1 $millis |head -n1)
 
 	if [[ $(echo "$danach - $millis"|bc -l|sed 's/\.//') -gt $(echo "$millis - $davor"|bc -l |sed 's/\.//') ]];	then
-		log 3 $danach
+		echo $danach
 	else
-		log 3 $davor
+		echo $davor
 	fi
 }
 
@@ -671,7 +671,7 @@ function findkeyframeafterframe()
 	case $keyframe in
 	*#*) keyframe=0;;
 	esac
-	log 3 $keyframe
+	echo $keyframe
 }
 
 function iskeyframe()
@@ -742,7 +742,7 @@ function findkeyframebeforeframe()
 	case $keyframe in
 	*#*) keyframe=0;;
 	esac
-	log 3 $keyframe
+	echo $keyframe
 }
 
 function get_timecode()
@@ -753,7 +753,7 @@ function get_timecode()
 	tmp=$1
 	subsec=${tmp#*.}
 	subsec=${subsec:0:7}
-	log 3 "$($DATE -u -d @${tmp} +%T).${subsec:-0}"
+	echo "$($DATE -u -d @${tmp} +%T).${subsec:-0}"
 }
 
 # schneide datei mit gegebener cutlist
