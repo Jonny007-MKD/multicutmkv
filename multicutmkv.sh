@@ -1174,26 +1174,28 @@ fi
 outputdir="$(pwd)"
 while [ "$1" != "${1#-}" ] ; do	# solange der naechste parameter mit "-" anfaengt...
 	case ${1#-} in
-	x) cutwith="avidemux";;
-	n) cutwith="dontcut"; check=0;;
-	s) cutwith="avisplit";;
-	sm) cutwith="smartmkvmerge";;
-	sma) cutwith="smartmkvmergeavconv";;
-	l) local=1;;
-	nl) local=0;;
-	d) download=1;;
-	o) outputdir="$2";shift;;
-	t) tempdir="$2";shift;;
-	nd) download=0;;
-	c) check=1;;
-	nc) check=0;;
-	i) automode=0;;
-	a) automode=1;;
-	m) min_rating=$2; shift;;
-	q) echoLevel=1
-       X264_X_ARGS="$X264_X_ARGS --log-level warning"
-       ;;
-	*) help; exit 0;;
+	x)	cutwith="avidemux";;
+	n)	cutwith="dontcut"; check=0;;
+	s)	cutwith="avisplit";;
+	sm)	cutwith="smartmkvmerge";;
+	sma)	cutwith="smartmkvmergeavconv";;
+	l)	local=1;;
+	nl)	local=0;;
+	d)	download=1;;
+	o)	outputdir="$2";shift;;
+	t)	tempdir="$2";shift;;
+	nd)	download=0;;
+	c)	check=1;;
+	nc)	check=0;;
+	i)	automode=0;;
+	a)	automode=1;;
+	m)	min_rating=$2; shift;;
+	q)	echoLevel=1
+		X264_X_ARGS="$X264_X_ARGS --log-level warning"
+		;;
+	*)	help;
+		exit 0
+		;;
 	esac
 	shift
 done
