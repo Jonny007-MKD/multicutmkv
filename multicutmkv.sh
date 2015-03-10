@@ -1190,7 +1190,9 @@ while [ "$1" != "${1#-}" ] ; do	# solange der naechste parameter mit "-" anfaeng
 	i) automode=0;;
 	a) automode=1;;
 	m) min_rating=$2; shift;;
-	q) echoLevel=1;;
+	q) echoLevel=1
+       X264_X_ARGS="$X264_X_ARGS --log-level warning"
+       ;;
 	*) help; exit 0;;
 	esac
 	shift
