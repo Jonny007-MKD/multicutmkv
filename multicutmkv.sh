@@ -504,7 +504,7 @@ function findBestCutlist ()
 	done
 
 	if [ ${#cutlist[@]} -eq 0 ] ; then
-		log 1 "Keine passende Cutlist fuer $c_filename$filename$c_error gefunden. Abbruch."
+		log 2 "${c_error}Keine passende Cutlist fuer $c_filename$filename$c_error gefunden. Abbruch."
 		return 0
 	fi
 	sortCutlists		# gesammelte cutlists nach "qualitaet" sortieren
@@ -1252,7 +1252,7 @@ cd "${outputdir}"
 [ $download -ne 0 ] && dlCutlists "$file"
 findBestCutlist "$file"
 usecl=$?	# zurueckgegebene cutlist verwenden. (array-index)
-(( $usecl == 0 )) && 
+if (( $usecl == 0 )) ; then
 {
 	rm -rf $tempdir
 	exit 10
