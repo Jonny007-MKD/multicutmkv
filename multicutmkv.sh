@@ -1173,7 +1173,7 @@ else
 fi
 
 outputdir="$(pwd)"
-while [ "$1" != "${1#-}" ] ; do	# solange der naechste parameter mit "-" anfaengt...
+while [ "${1:0:1}" == "-" ] ; do	# solange der naechste parameter mit "-" anfaengt...
 	case ${1#-} in
 	x)	cutwith="avidemux";;
 	n)	cutwith="dontcut"; check=0;;
