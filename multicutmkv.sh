@@ -329,17 +329,19 @@ function getFtype()
 # Sucht alle cutlists fuer diese gdatei, die beste wird spaeter gesucht...
 ##############################################################################################
 function dlCutlists ()
-{ # filename
+{ # filename      # diff filesize
 	cd "$workdir"
 	filename="${1}"
 	log 3 "${c_info}Suche cutlists fuer ${filename##*/}..."
-	if [[ $(uname) != "Linux" ]]
-	then
+	if [[ $(uname) != "Linux" ]]; then
 		search=$(stat -f %z "$filename")
 		DATE=gdate
 	else
 		search=$(stat -c %s "$filename")
 		DATE=date
+	fi
+	if (( $# >= 2 )); then		# Difference to filesize given
+		search=$((search-$2))
 	fi
 
 	cd ${tempdir}
@@ -1186,15 +1188,21 @@ while [ "${1:0:1}" == "-" ] ; do	# solange der naechste parameter mit "-" anfaen
 	t)	tempdir="$2";shift;;
 	d)	download=1;;
 	nd)	download=0;;
-	find-cl) onlyFindCutlist=true;;
+	find-cl)
+		onlyFindCutlist=true
+		if [[ "${2}" == [0-9]* ]]; then		# following arg is the differenze to the size of the file
+			onlyFindCutlistSearch=$2
+			shift
+		fi
+		;&
+	q)	echoLevel=1
+		X264_X_ARGS="$X264_X_ARGS --log-level warning"
+		;;
 	c)	check=1;;
 	nc)	check=0;;
 	i)	automode=0;;
 	a)	automode=1;;
 	m)	min_rating=$2; shift;;
-	q)	echoLevel=1
-		X264_X_ARGS="$X264_X_ARGS --log-level warning"
-		;;
 	*)	help;
 		exit 0
 		;;
@@ -1253,7 +1261,7 @@ fi
 
 cd "${outputdir}"
 
-[ $download -ne 0 ] && dlCutlists "$file"
+[ $download -ne 0 ] && dlCutlists "$file" $onlyFindCutlistSearch
 findBestCutlist "$file"
 usecl=$?	# zurueckgegebene cutlist verwenden. (array-index)
 if (( $usecl == 0 )) ; then
