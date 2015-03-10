@@ -104,6 +104,7 @@ function cleanup()
 	esac
 }
 
+onlyFindCutlist=false
 trap 'cleanup' 1 2 3 6 9 13 14 15
 # x264 Parameter um HD, HQ und mp4 zu kodieren, wenn smartmkvmerge genutzt
 # wird
@@ -1181,10 +1182,11 @@ while [ "$1" != "${1#-}" ] ; do	# solange der naechste parameter mit "-" anfaeng
 	sma)	cutwith="smartmkvmergeavconv";;
 	l)	local=1;;
 	nl)	local=0;;
-	d)	download=1;;
 	o)	outputdir="$2";shift;;
 	t)	tempdir="$2";shift;;
+	d)	download=1;;
 	nd)	download=0;;
+	find-cl) onlyFindCutlist=true;;
 	c)	check=1;;
 	nc)	check=0;;
 	i)	automode=0;;
@@ -1255,11 +1257,14 @@ cd "${outputdir}"
 findBestCutlist "$file"
 usecl=$?	# zurueckgegebene cutlist verwenden. (array-index)
 if (( $usecl == 0 )) ; then
-{
 	rm -rf $tempdir
-	exit 10
+	cleanup 10
 	# abbruch, film nicht schneiden
-}
+fi
+if $onlyFindCutlist; then
+	cleanup 0
+	# wir sollen nicht schneiden, abbruch.
+fi
 #  usecl=$((usecl-1))
 if [ -n "${url[$usecl]}" ] ; then
 	dlCutlist $usecl
