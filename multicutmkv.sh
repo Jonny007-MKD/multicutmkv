@@ -192,7 +192,7 @@ function check_dependencies2()
 			pist=1
 		fi
 		if ! type $FFMSINDEX > /dev/null 2>&1 ; then
-			log 1 "Please install ffmsindex"
+			log 1 "Please install ffmsindex (version >= 2.18)"
 			pist=1
 		fi
 		if ! type $X264 > /dev/null 2>&1 ; then
