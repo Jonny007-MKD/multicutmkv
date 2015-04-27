@@ -1142,6 +1142,7 @@ Moegliche Optionen:
 -c	Schnittstellen ueberpruefen - erfordert mplayer
 -nc	Schnittstellen NICHT ueberpruefen
 -o	Ausgabeverzeichnis
+-t  Temporäres Verzeichnis
 
 -i	Interaktiver Modus
 -a	Automatischer Modus - kein manuelle cutlist auswahl
