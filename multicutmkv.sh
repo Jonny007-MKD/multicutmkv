@@ -905,6 +905,9 @@ function cutfilm ()
 									$AVCONV $AVCONV_X_ARGS -ss $preseek -i "${film}"  -ss $avstime $avconvopts -vframes $((frames-ulkeyframe+sframe))   ${outputfilename}.avi
 									if [ $? -ne 0 ] || [ ! -f ${outputfilename}.avi ] || [ $(stat -c %s "${outputfilename}.avi") -eq 0 ]; then
 										log 1 "avconv failed"
+										if [ -f ${outputfilename}.avi ]; then
+											rm -f ${outputfilename}.avi
+										fi
 										cleanup 23
 									else
 										touch ${outputfilename}.avi.ok
@@ -949,6 +952,9 @@ function cutfilm ()
 								$AVCONV $AVCONV_X_ARGS -ss $preseek -i "${film}"  -ss $avstime $avconvopts -vframes $((eframes)) ${outputfilename}.avi
 								if [ $? -ne 0 ] || [ ! -f ${outputfilename}.avi ] || [ $(stat -c %s "${outputfilename}.avi") -eq 0 ]; then
 									log 1 "avconv failed"
+									if [ -f ${outputfilename}.avi ]; then
+										rm -f ${outputfilename}.avi
+									fi
 									cleanup 23
 								else
 									touch ${outputfilename}.avi.ok
@@ -1007,6 +1013,9 @@ function cutfilm ()
 										$AVCONV $AVCONV_X_ARGS -ss $preseek -i "${film}"  -ss $avstime $avconvopts  -vframes $((sframe+frames-beframe)) ${outputfilename}.avi
 										if [ $? -ne 0 ] || [ ! -f ${outputfilename}.avi ] || [ $(stat -c %s "${outputfilename}.avi") -eq 0 ]; then
 											log 1 "avconv failed"
+											if [ -f ${outputfilename}.avi ]; then
+												rm -f ${outputfilename}.avi
+											fi
 											cleanup 23
 										else
 											touch ${outputfilename}.avi.ok
