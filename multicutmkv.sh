@@ -1051,7 +1051,15 @@ function cutfilm ()
 		video_splitframes="${video_splitframes:1}"
 		audio_timecodes="${audio_timecodes:2}"
 		[[ $cutwith == "smartmkvmerge" ]] && mkvmergeopts="-A"
-		$MKVMERGE $MKVMERGE_X_ARGS --ui-language en_US --split parts-frames:$video_splitframes $mkvmergeopts -o video_copy.mkv $film
+		if [ ! -f "video_copy.mkv.ok" ]; then
+			$MKVMERGE $MKVMERGE_X_ARGS --ui-language en_US --split parts-frames:$video_splitframes $mkvmergeopts -o video_copy.mkv $film
+			if [ $? -ne 0 ] || [ ! -f "video_copy.mkv" ] || [ $(stat -c %s "video_copy.mkv") -eq 0 ]; then
+				log 1 "mkvmerge failed"
+				cleanup 21
+			else
+				touch "video_copy.mkv.ok"
+			fi
+		fi
 
 		vcopy=( video_copy*.mkv )
 		vindex=0
