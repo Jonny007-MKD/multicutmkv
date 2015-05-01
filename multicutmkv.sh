@@ -22,6 +22,8 @@
 #  20 ffmsindex failed (could not create keyframe list)
 #  21 mkvmerge failed
 #  22 x264 failed
+#  23 avconv failed
+#  24 mkvmerge failed
 #   6
 #   7
 # 126 Additional software needed
@@ -889,25 +891,38 @@ function cutfilm ()
 							video_files[${#video_files[@]}]=video_copy-00${checkcnt}.mkv
 							outputfilename=cut${checkcnt}_seg3.mkv
 
-							if [ $cutwith == "smartmkvmerge" ] && [ ! -f $outputfilename.ok ] ; then
+							if [ $cutwith == "smartmkvmerge" ] && [ ! -f ${outputfilename}.ok ] ; then
 								$X264 $X264_X_ARGS $x264_opts --index ${tempdir}/x264.index --seek $lkeyframe --frames $((frames-ulkeyframe+sframe)) --output $outputfilename $film
-								if [ $? -ne 0 ] || [ ! -f $outputfilename ] || [ $(stat -c %s "$outputfilename") -eq 0 ]; then
+								if [ $? -ne 0 ] || [ ! -f ${outputfilename} ] || [ $(stat -c %s "${outputfilename}") -eq 0 ]; then
 									log 1 "x264 failed"
 									cleanup 22
 								else
-									touch $outputfilename.ok
+									touch ${outputfilename}.ok
 								fi
-							elif [ $cutwith == "smartmkvmergeavconv" ]; then
+							elif [ $cutwith == "smartmkvmergeavconv" ] && [ ! -f ${outputfilename}.ok ] ; then
 								# TODO richtige Start und endwerte prüfen
 								avstime=$(convertframestostime "$film" $lkeyframe)
 								preseek=0
-								if (( ${avstime%.*} > 31 ))
-								then
+								if (( ${avstime%.*} > 31 )); then
 									preseek=$(echo ${avstime%.*}-30|bc)
 								fi
 								avstime=$(echo ${avstime} - $preseek| bc -l )
-								$AVCONV $AVCONV_X_ARGS -ss $preseek -i "${film}"  -ss $avstime $avconvopts -vframes $((frames-ulkeyframe+sframe))   ${outputfilename}.avi
+								if [ ! -f ${outputfilename}.avi.ok ]; then
+									$AVCONV $AVCONV_X_ARGS -ss $preseek -i "${film}"  -ss $avstime $avconvopts -vframes $((frames-ulkeyframe+sframe))   ${outputfilename}.avi
+									if [ $? -ne 0 ] || [ ! -f ${outputfilename}.avi ] || [ $(stat -c %s "${outputfilename}.avi") -eq 0 ]; then
+										log 1 "avconv failed"
+										cleanup 23
+									else
+										touch ${outputfilename}.avi.ok
+									fi
+								fi
 								$MKVMERGE $MKVMERGE_X_ARGS -o "${outputfilename}" "${outputfilename}.avi"
+								if [ $? -ne 0 ] || [ ! -f ${outputfilename} ] || [ $(stat -c %s "${outputfilename}") -eq 0 ]; then
+									log 1 "mkvmerge failed"
+									cleanup 24
+								else
+									touch ${outputfilename}.ok
+								fi
 							fi
 							video_files[${#video_files[@]}]=$outputfilename
 							video_splitframes="${video_splitframes},$sframe-$lkeyframe"
@@ -920,15 +935,15 @@ function cutfilm ()
 							eframes=$frames
 						fi
 						outputfilename=cut${checkcnt}_seg1.mkv
-						if [ $cutwith == "smartmkvmerge" ] && [ ! -f $outputfilename.ok ] ; then
+						if [ $cutwith == "smartmkvmerge" ] && [ ! -f ${outputfilename}.ok ] ; then
 							$X264 $X264_X_ARGS $x264_opts --index ${tempdir}/x264.index --seek $sframe --frames $((eframes)) --output $outputfilename $film
 							if [ $? -ne 0 ] || [ ! -f $outputfilename ] || [ $(stat -c %s "$outputfilename") -eq 0 ]; then
 								log 1 "x264 failed"
 								cleanup 22
 							else
-								touch $outputfilename.ok
+								touch ${outputfilename}.ok
 							fi
-						elif [ $cutwith == "smartmkvmergeavconv" ]; then
+						elif [ $cutwith == "smartmkvmergeavconv" ] && [ ! -f ${outputfilename}.ok ] ; then
 							# TODO richtige Start und endwerte prüfen
 							avstime=$(convertframestostime "$film" $sframe)
 							preseek=0
@@ -936,8 +951,22 @@ function cutfilm ()
 								preseek=$(echo ${avstime%.*}-30|bc)
 							fi
 							avstime=$(echo ${avstime} - $preseek| bc -l )
-							$AVCONV $AVCONV_X_ARGS -ss $preseek -i "${film}"  -ss $avstime $avconvopts -vframes $((eframes)) ${outputfilename}.avi
+							if [ ! -f ${outputfilename}.avi.ok ]; then
+								$AVCONV $AVCONV_X_ARGS -ss $preseek -i "${film}"  -ss $avstime $avconvopts -vframes $((eframes)) ${outputfilename}.avi
+								if [ $? -ne 0 ] || [ ! -f ${outputfilename}.avi ] || [ $(stat -c %s "${outputfilename}.avi") -eq 0 ]; then
+									log 1 "avconv failed"
+									cleanup 23
+								else
+									touch ${outputfilename}.avi.ok
+								fi
+							fi
 							$MKVMERGE $MKVMERGE_X_ARGS -o "${outputfilename}" "${outputfilename}.avi"
+							if [ $? -ne 0 ] || [ ! -f ${outputfilename} ] || [ $(stat -c %s "${outputfilename}") -eq 0 ]; then
+								log 1 "mkvmerge failed"
+								cleanup 24
+							else
+								touch ${outputfilename}.ok
+							fi
 						fi
 
 						video_files[${#video_files[@]}]=$outputfilename
@@ -963,15 +992,15 @@ function cutfilm ()
 								outputfilename=cut${checkcnt}_seg3.mkv
 
 
-								if [ $cutwith == "smartmkvmerge" ] && [ ! -f $outputfilename.ok ] ; then
+								if [ $cutwith == "smartmkvmerge" ] && [ ! -f ${outputfilename}.ok ] ; then
 									$X264 $X264_X_ARGS $x264_opts  --index ${tempdir}/x264.index --seek $beframe --frames $((sframe+frames-beframe)) --output $outputfilename $film
 									if [ $? -ne 0 ] || [ ! -f $outputfilename ] || [ $(stat -c %s "$outputfilename") -eq 0 ]; then
 										log 1 "x264 failed"
 										cleanup 22
 									else
-										touch $outputfilename.ok
+										touch ${outputfilename}.ok
 									fi
-								elif [ $cutwith == "smartmkvmergeavconv" ]; then
+								elif [ $cutwith == "smartmkvmergeavconv" ] && [ ! -f ${outputfilename}.ok ] ; then
 									# TODO richtige Start und endwerte prüfen
 									avstime=$(convertframestostime "$film" $beframe)
 									preseek=0
@@ -980,8 +1009,22 @@ function cutfilm ()
 									fi
 									avstime=$(echo ${avstime} - $preseek| bc -l )
 									log 3 "$sframe $frames $beframe"
-									$AVCONV $AVCONV_X_ARGS -ss $preseek -i "${film}"  -ss $avstime $avconvopts  -vframes $((sframe+frames-beframe)) ${outputfilename}.avi
+									if [ ! -f ${outputfilename}.avi.ok ]; then
+										$AVCONV $AVCONV_X_ARGS -ss $preseek -i "${film}"  -ss $avstime $avconvopts  -vframes $((sframe+frames-beframe)) ${outputfilename}.avi
+										if [ $? -ne 0 ] || [ ! -f ${outputfilename}.avi ] || [ $(stat -c %s "${outputfilename}.avi") -eq 0 ]; then
+											log 1 "avconv failed"
+											cleanup 23
+										else
+											touch ${outputfilename}.avi.ok
+										fi
+									fi
 									$MKVMERGE $MKVMERGE_X_ARGS -o "${outputfilename}" "${outputfilename}.avi"
+									if [ $? -ne 0 ] || [ ! -f ${outputfilename} ] || [ $(stat -c %s "${outputfilename}") -eq 0 ]; then
+										log 1 "mkvmerge failed"
+										cleanup 24
+									else
+										touch ${outputfilename}.ok
+									fi
 								fi	
 								video_files[${#video_files[@]}]=$outputfilename
 							fi
