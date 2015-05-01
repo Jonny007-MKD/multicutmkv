@@ -874,7 +874,7 @@ function cutfilm ()
 							video_splitframes="${video_splitframes},$sframe-$((sframe + frames))"
 							video_files[${#video_files[@]}]=video_copy-00${checkcnt}.mkv
 						else
-							log 3 end ist kein keyframe
+							log 3 "end ist kein keyframe"
 							# das häppchen startet mit keyframe aber endet nicht aufkeyframe
 							lkeyframe=$(findkeyframebeforeframe $((sframe + frames)) $film)
 							ulkeyframe=$lkeyframe
@@ -1117,7 +1117,7 @@ function cutfilm ()
 	fi
 	## schnittstellen ueberpruefen
 	[ $check -eq 1 ] && type mplayer >/dev/null && read -p "Zur Ueberpruefung der Schnittstellen bitte Taste druecken..." -n 1
-	log 3 "Schnitte bei folgenden Zeiten:"
+	log 3 "Schnitte bei folgenden Zeiten (im Ergebnis):"
 	i=0
 	while [ $i -lt ${#checktimes[@]} ] ; do
 		$DATE -u -d @${checktimes[$i]} +%T
