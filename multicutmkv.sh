@@ -307,7 +307,7 @@ function getFtype()
 
 	shopt -s compat31
 	# x264 arbeitet nur über ffms genau genug nutze den ffms-demuxer oder leb mit ungenauen Schnitten.
-	#x264_opts="$x264_opts --demuxer ffms"
+	x264_opts="$x264_opts --demuxer ffms"
 	if [[ ${filename} =~ ".*HQ.avi*" ]]
 	then
 		x264_opts="$x264_opts $x264_hq_string"
