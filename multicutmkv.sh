@@ -23,7 +23,6 @@
 #  21 mkvmerge failed
 #  22 x264 failed
 #  23 avconv failed
-#  24 mkvmerge failed
 #   6
 #   7
 # 126 Additional software needed
@@ -780,23 +779,18 @@ function cutfilm ()
 	cd "$tempdir"
 	if ! [ $(echo $film | grep -qv "\.mkv" ) ]
 	then
-		if [ $cutwith == "avidemux" ] || [ $cutwith == "smartmkvmergeavconv" ]
-		then
+		if [ $cutwith == "avidemux" ] || [ $cutwith == "smartmkvmergeavconv" ]; then
 			check_dependencies2
-			if [ ! -f "${tempdir}/mkv.ok" ]; then
+			if [ ! -f "${tempdir}/$(basename $film).mkv.ok" ]; then
 				$MKVMERGE $MKVMERGE_X_ARGS -o "${tempdir}/$(basename $film).mkv" "$film"
-				if [ $? -eq 0 ]; then
-					touch "${tempdir}/mkv.ok"
-				else
+				if [ $? -ne 0 ] || [ ! -f "${tempdir}/$(basename $film).mkv" ] ; then
 					log 1 "mkvmerge failed" 
 					cleanup 21
+				else
+					touch "${tempdir}/$(basename $film).mkv.ok"
 				fi
 			fi
 			film="${tempdir}/$(basename $film).mkv"
-			if [ ! -f $film ]; then
-				log 1 "mkvmerge failed"
-				cleanup 21
-			fi
 		fi
 	fi
 
@@ -919,7 +913,7 @@ function cutfilm ()
 								$MKVMERGE $MKVMERGE_X_ARGS -o "${outputfilename}" "${outputfilename}.avi"
 								if [ $? -ne 0 ] || [ ! -f ${outputfilename} ] || [ $(stat -c %s "${outputfilename}") -eq 0 ]; then
 									log 1 "mkvmerge failed"
-									cleanup 24
+									cleanup 21
 								else
 									touch ${outputfilename}.ok
 								fi
@@ -963,7 +957,7 @@ function cutfilm ()
 							$MKVMERGE $MKVMERGE_X_ARGS -o "${outputfilename}" "${outputfilename}.avi"
 							if [ $? -ne 0 ] || [ ! -f ${outputfilename} ] || [ $(stat -c %s "${outputfilename}") -eq 0 ]; then
 								log 1 "mkvmerge failed"
-								cleanup 24
+								cleanup 21
 							else
 								touch ${outputfilename}.ok
 							fi
@@ -1021,7 +1015,7 @@ function cutfilm ()
 									$MKVMERGE $MKVMERGE_X_ARGS -o "${outputfilename}" "${outputfilename}.avi"
 									if [ $? -ne 0 ] || [ ! -f ${outputfilename} ] || [ $(stat -c %s "${outputfilename}") -eq 0 ]; then
 										log 1 "mkvmerge failed"
-										cleanup 24
+										cleanup 21
 									else
 										touch ${outputfilename}.ok
 									fi
