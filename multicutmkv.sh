@@ -1266,14 +1266,16 @@ while [ "${1:0:1}" == "-" ] ; do	# solange der naechste parameter mit "-" anfaen
 done
 
 
-# benoetigte ordner (falls nicht vorhanden) erstellen
-workdir="$(pwd)"
 
 if [ $# -eq 0 ]; then
 	echo "Aufruf: $0 <Optionen> <Film>"
 	cleanup 2
 fi
 
+# benoetigte ordner (falls nicht vorhanden) erstellen
+workdir="$(pwd)"
+
+tempdir=$(realpath $tempdir)
 if [ ! -d "$tempdir" ] ; then
 	mkdir -p $tempdir
 	chmod 777 $tempdir
