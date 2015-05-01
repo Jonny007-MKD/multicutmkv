@@ -232,7 +232,7 @@ function getFtype()
 
 	bt709="--videoformat pal --colorprim bt709 --transfer bt709 --colormatrix bt709"
 	bt470bg="--videoformat pal --colorprim bt470bg --transfer bt470bg --colormatrix bt470bg"
-	avconvopts="-vcodec mpeg4 -vtag DX50 -q:v 1 -g 300"
+	avconvopts="-vcodec h264 -q:v 1 -g 300"
 	if [ ! -f $tempdir/$(basename $film).mediainfo ]; then
 		$MEDIAINFO $MEDIAINFO_X_ARGS $filename > $tempdir/$(basename $film).mediainfo
 	fi
