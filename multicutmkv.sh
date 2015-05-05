@@ -724,6 +724,7 @@ function convertframestostime ()
 	fi
 	local tmp
 	timev=$(awk "NR==$((frame+2)) {print;exit}"  $list)
+	timev=$(printf "%.0f" $timev)
 	echo "$timev / 1000" | bc -l
 }
 
