@@ -232,7 +232,7 @@ function getFtype()
 
 	bt709="--videoformat pal --colorprim bt709 --transfer bt709 --colormatrix bt709"
 	bt470bg="--videoformat pal --colorprim bt470bg --transfer bt470bg --colormatrix bt470bg"
-	avconvopts="-vcodec h264 -q:v 1 -g 300"
+	avconvopts="-q:v 1 -g 300"
 	if [ ! -f $tempdir/$(basename $film).mediainfo ]; then
 		$MEDIAINFO $MEDIAINFO_X_ARGS $filename > $tempdir/$(basename $film).mediainfo
 	fi
@@ -243,6 +243,11 @@ function getFtype()
 		"Color primaries"*)
 			[[ $line == *"BT.709"* ]] && x264_opts="$x264_opts $bt709"
 			[[ $line == *"BT.470"* ]] && x264_opts="$x264_opts $bt470bg" ;;
+		"Format   "*)
+			case "${line:43}" in
+				"MPEG-4"*) avconvopts="$avconvopts -vcodec mpeg4 -vtag DX50";;
+				"AVC"*)    avconvopts="$avconvopts -vcodec h264";;
+			esac;;
 		"Format profile"*"@L"*) 
 			lvl=$(echo ${line#*@L}|cut -d"." -f1); profile=$(echo ${line%@L*}|cut -d":" -f2)
 			x264_opts="$x264_opts --level $lvl --profile $profile";;
