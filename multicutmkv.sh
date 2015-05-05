@@ -1053,7 +1053,7 @@ function cutfilm ()
 		[[ $cutwith == "smartmkvmerge" ]] && mkvmergeopts="-A"
 		if [ ! -f "video_copy.mkv.ok" ]; then
 			$MKVMERGE $MKVMERGE_X_ARGS --ui-language en_US --split parts-frames:$video_splitframes $mkvmergeopts -o video_copy.mkv $film
-			if [ $? -ne 0 ] || [ ! -f "video_copy.mkv" ] || [ $(stat -c %s "video_copy.mkv") -eq 0 ]; then
+			if [ $? -ne 0 ]; then		# we cannot check for video_copy.mkv here because mkvmerge adds suffixes automatically
 				log 1 "mkvmerge failed"
 				cleanup 21
 			else
@@ -1076,7 +1076,15 @@ function cutfilm ()
 		afiles=""
 		if [ $cutwith == "smartmkvmerge" ]; then
 			# audiostream kopieren
-			$MKVMERGE $MKVMERGE_X_ARGS --ui-language en_US -D --split parts:$audio_timecodes -o  audio_copy.mkv $film
+			if [ ! -f "audio_copy.mkv.ok" ]; then
+				$MKVMERGE $MKVMERGE_X_ARGS --ui-language en_US -D --split parts:$audio_timecodes -o  audio_copy.mkv $film
+				if [ $? -ne 0 ]; then
+					log 1 "mkvmerge failed"
+					cleanup 21
+				else
+					touch "audio_copy.mkv.ok"
+				fi
+			fi
 			afiles=audio_copy*.mkv
 			mkvmergeopts="-D"
 		fi
