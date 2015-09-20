@@ -233,8 +233,8 @@ function getFtype()
 	bt709="--videoformat pal --colorprim bt709 --transfer bt709 --colormatrix bt709"
 	bt470bg="--videoformat pal --colorprim bt470bg --transfer bt470bg --colormatrix bt470bg"
 	avconvopts="-q:v 1 -g 300"
-	if [ ! -f $tempdir/$(basename $film).mediainfo ]; then
-		$MEDIAINFO $MEDIAINFO_X_ARGS $filename > $tempdir/$(basename $film).mediainfo
+	if [ ! -f "$tempdir/$(basename $film).mediainfo" ]; then
+		$MEDIAINFO $MEDIAINFO_X_ARGS "$filename" > "$tempdir/$(basename $film).mediainfo"
 	fi
 
 	while read line
@@ -308,7 +308,7 @@ function getFtype()
 			done;;
 		*) ;;
 		esac
-	done < $tempdir/$(basename $film).mediainfo
+	done < "$tempdir/$(basename $film).mediainfo"
 
 	shopt -s compat31
 	# x264 arbeitet nur über ffms genau genug nutze den ffms-demuxer oder leb mit ungenauen Schnitten.
@@ -635,12 +635,12 @@ function findclosesttime()
 	local millis
 	local kflist
 
-	millis=$1
-	film=$2
+	millis="$1"
+	film="$2"
 	kflist="${film##*/}.ffindex_track00.tc.txt"
 	if [ ! -f "${kflist}" ]
 	then
-		$FFMSINDEX $FFMSINDEX_X_ARGS -k -p -c -f $film ${film##*/}.ffindex
+		$FFMSINDEX $FFMSINDEX_X_ARGS -k -p -c -f "$film" "${film##*/}.ffindex"
 		if [ ! -f "${kflist}" ]; then
 			log 1 "ffmsindex failed"
 			cleanup 20
@@ -663,13 +663,13 @@ function findkeyframeafterframe()
 	local film
 	local frame
 
-	frame=$1
-	film=$2
+	frame="$1"
+	film="$2"
 	local kflist
 	kflist="${film##*/}.ffindex_track00.kf.txt"
 	if [ ! -f "${kflist}" ]
 	then
-		$FFMSINDEX $FFMSINDEX_X_ARGS -k -p -c -f $film ${film##*/}.ffindex
+		$FFMSINDEX $FFMSINDEX_X_ARGS -k -p -c -f "$film" "${film##*/}.ffindex"
 		if [ ! -f "${kflist}" ]; then
 			log 1 "ffmsindex failed"
 			cleanup 20
@@ -689,12 +689,13 @@ function iskeyframe()
 	local film
 	local frame
 	local kflist
-	frame=$1
-	film=$2
+
+	frame="$1"
+	film="$2"
 	kflist="${film##*/}.ffindex_track00.kf.txt"
 	if [ ! -f "${kflist}" ]
 	then
-		$FFMSINDEX $FFMSINDEX_X_ARGS -k -p -c -f $film ${film##*/}.ffindex
+		$FFMSINDEX $FFMSINDEX_X_ARGS -k -p -c -f "$film" "${film##*/}.ffindex"
 		if [ ! -f "${kflist}" ]; then
 			log 1 "ffmsindex failed"
 			cleanup 20
@@ -710,13 +711,14 @@ function convertframestostime ()
 	local frame
 	local timev
 	local list
-	frame=$2
-	film=$1
+
+	frame="$2"
+	film="$1"
 
 	list="${film##*/}.ffindex_track00.tc.txt"
 	if [ ! -f "${list}" ]
 	then
-		$FFMSINDEX $FFMSINDEX_X_ARGS -k -p -c -f $film ${film##*/}.ffindex
+		$FFMSINDEX $FFMSINDEX_X_ARGS -k -p -c -f "$film" "${film##*/}.ffindex"
 		if [ ! -f "${kflist}" ]; then
 			log 1 "ffmsindex failed"
 			cleanup 20
@@ -735,13 +737,14 @@ function findkeyframebeforeframe()
 	local film
 	local frame
 	local keyframe 
-	frame=$1
-	film=$2
+
+	frame="$1"
+	film="$2"
 	local kflist
 	kflist="${film##*/}.ffindex_track00.kf.txt"
 	if [ ! -f "${kflist}" ]
 	then
-		$FFMSINDEX $FFMSINDEX_X_ARGS -k -p -c -f $film ${film##*/}.ffindex
+		$FFMSINDEX $FFMSINDEX_X_ARGS -k -p -c -f "$film" "${film##*/}.ffindex"
 		if [ ! -f "${kflist}" ]; then
 			log 1 "fmsindex failed"
 			cleanup 20
@@ -783,7 +786,7 @@ function cutfilm ()
 	markersminus=0
 	markerA[0]=0
 	cd "$tempdir"
-	if ! [ $(echo $film | grep -qv "\.mkv" ) ]
+	if ! [ $(echo "$film" | grep -qv "\.mkv" ) ]
 	then
 		if [ $cutwith == "avidemux" ] || [ $cutwith == "smartmkvmergeavconv" ]; then
 			check_dependencies2
@@ -801,7 +804,7 @@ function cutfilm ()
 	fi
 
 	project_start "$film"
-	getFtype $film
+	getFtype "$film"
 	fps=$( grep FramesPerSecond "$cutlist" | tr -d "\r" | sed 's/FramesPerSecond=//' )
 	lines=$( egrep "^(Start|Duration)=" "$cutlist" | tr -d "\r" )
 	numCuts=$( echo $lines | wc -w )
@@ -825,7 +828,7 @@ function cutfilm ()
 
 			if [ $cutwith == "avidemux" ]; then
 				avidemillis=$(echo "$startcut*1000"|bc -l)
-				millis=$( findclosesttime ${avidemillis} $film)
+				millis=$( findclosesttime ${avidemillis} "$film")
 				echo -n "adm.addSegment(0, $millis, " >> project.py
 			elif [ $cutwith == "avisplit" ] ; then
 				time=$( $DATE -u -d @$secs +%T )		# wandelt sekunden.dezimalen in hh:mm:ss um...
@@ -857,8 +860,8 @@ function cutfilm ()
 				if [ $cutwith == "avidemux" ] ; then
 					tmp=$(echo "$avidemillis+(${length}*1000)"|bc -l)
 					log 3 "findclosesttime $tmp)"
-					# millis=$( findclosesttime $((secs+${length%.*}))$((sdecimalsecs/1000 + decimalsecs/1000)).$((sdecimalsecs % 1000 * 1000 + decimalsecs%1000 * 1000)) $film)
-					millis=$( findclosesttime $tmp $film)
+					# millis=$( findclosesttime $((secs+${length%.*}))$((sdecimalsecs/1000 + decimalsecs/1000)).$((sdecimalsecs % 1000 * 1000 + decimalsecs%1000 * 1000)) "$film")
+					millis=$( findclosesttime $tmp "$film")
 					echo "${millis})" >> project.py  
 				elif [ $cutwith == "smartmkvmerge" ] || [ $cutwith == "smartmkvmergeavconv" ]; then
 					log 3 "Length: $length, Start cut: $startcut"
@@ -866,14 +869,14 @@ function cutfilm ()
 					audio_timecodes="${audio_timecodes},+$(get_timecode $startcut)-$(get_timecode $tmp)"
 					#	  log 4 "startframe: $sframe"
 					#	  log 4 "duration: $frames" # endframe
-					skeyframe=$(findkeyframebeforeframe $sframe $film)
+					skeyframe=$(findkeyframebeforeframe $sframe "$film")
 					local tmp
 					# encode
 					log 3 "${c_info}start: $sframe${c_end}	${c_info}end:  	$((sframe + frames))${c_end}	${c_info}length:   $frames"
 
-					if iskeyframe $sframe $film; then
+					if iskeyframe $sframe "$film"; then
 						log 3 "start ist keyframe"
-						if iskeyframe $((sframe + frames)) $film; then
+						if iskeyframe $((sframe + frames)) "$film"; then
 							log 3 "end ist keyframe"
 							# das gesamte geforderte Häppchen endet und beginnt auf keyframes
 							# FIXME - Beschränkung: maximal 9 Cuts sind so pro Film möglich.
@@ -882,7 +885,7 @@ function cutfilm ()
 						else
 							log 3 "end ist kein keyframe"
 							# das häppchen startet mit keyframe aber endet nicht aufkeyframe
-							lkeyframe=$(findkeyframebeforeframe $((sframe + frames)) $film)
+							lkeyframe=$(findkeyframebeforeframe $((sframe + frames)) "$film")
 							ulkeyframe=$lkeyframe
 							if (( $lkeyframe < $sframe )); then
 								ulkeyframe=$sframe
@@ -892,7 +895,7 @@ function cutfilm ()
 							outputfilename=cut${checkcnt}_seg3.mkv
 
 							if [ $cutwith == "smartmkvmerge" ] && [ ! -f ${outputfilename}.ok ] ; then
-								$X264 $X264_X_ARGS $x264_opts --index ${tempdir}/x264.index --seek $lkeyframe --frames $((frames-ulkeyframe+sframe)) --output $outputfilename $film
+								$X264 $X264_X_ARGS $x264_opts --index ${tempdir}/x264.index --seek $lkeyframe --frames $((frames-ulkeyframe+sframe)) --output $outputfilename "$film"
 								if [ $? -ne 0 ] || [ ! -f ${outputfilename} ] || [ $(stat -c %s "${outputfilename}") -eq 0 ]; then
 									log 1 "x264 failed"
 									cleanup 22
@@ -908,7 +911,7 @@ function cutfilm ()
 								fi
 								avstime=$(echo ${avstime} - $preseek| bc -l )
 								if [ ! -f ${outputfilename}.avi.ok ]; then
-									$AVCONV $AVCONV_X_ARGS -ss $preseek -i "${film}"  -ss $avstime $avconvopts -vframes $((frames-ulkeyframe+sframe))   ${outputfilename}.avi
+									$AVCONV $AVCONV_X_ARGS -ss $preseek -i "$film"  -ss $avstime $avconvopts -vframes $((frames-ulkeyframe+sframe))   ${outputfilename}.avi
 									if [ $? -ne 0 ] || [ ! -f ${outputfilename}.avi ] || [ $(stat -c %s "${outputfilename}.avi") -eq 0 ]; then
 										log 1 "avconv failed"
 										if [ -f ${outputfilename}.avi ]; then
@@ -932,14 +935,14 @@ function cutfilm ()
 						fi
 					else
 						log 3 "start ist kein keyframe"
-						asframe=$(findkeyframeafterframe $sframe $film)
+						asframe=$(findkeyframeafterframe $sframe "$film")
 						eframes=$((asframe-sframe))
 						if (( $asframe  > $sframe + $frames )); then
 							eframes=$frames
 						fi
 						outputfilename=cut${checkcnt}_seg1.mkv
 						if [ $cutwith == "smartmkvmerge" ] && [ ! -f ${outputfilename}.ok ] ; then
-							$X264 $X264_X_ARGS $x264_opts --index ${tempdir}/x264.index --seek $sframe --frames $((eframes)) --output $outputfilename $film
+							$X264 $X264_X_ARGS $x264_opts --index ${tempdir}/x264.index --seek $sframe --frames $((eframes)) --output $outputfilename "$film"
 							if [ $? -ne 0 ] || [ ! -f $outputfilename ] || [ $(stat -c %s "$outputfilename") -eq 0 ]; then
 								log 1 "x264 failed"
 								cleanup 22
@@ -955,7 +958,7 @@ function cutfilm ()
 							fi
 							avstime=$(echo ${avstime} - $preseek| bc -l )
 							if [ ! -f ${outputfilename}.avi.ok ]; then
-								$AVCONV $AVCONV_X_ARGS -ss $preseek -i "${film}"  -ss $avstime $avconvopts -vframes $((eframes)) ${outputfilename}.avi
+								$AVCONV $AVCONV_X_ARGS -ss $preseek -i "$film"  -ss $avstime $avconvopts -vframes $((eframes)) ${outputfilename}.avi
 								if [ $? -ne 0 ] || [ ! -f ${outputfilename}.avi ] || [ $(stat -c %s "${outputfilename}.avi") -eq 0 ]; then
 									log 1 "avconv failed"
 									if [ -f ${outputfilename}.avi ]; then
@@ -977,7 +980,7 @@ function cutfilm ()
 
 						video_files[${#video_files[@]}]=$outputfilename
 
-						if iskeyframe $((sframe + frames)) $film; then
+						if iskeyframe $((sframe + frames)) "$film"; then
 							log 3 "end ist keyframe"
 							# start ist kein keyframe aber ende
 							if (($frames+$sframe > $asframe )); then
@@ -989,7 +992,7 @@ function cutfilm ()
 							log 3 "end ist kein keyframe"
 							# weder start noch ende sind keyframes
 							if (($frames+$sframe > $asframe )); then
-								beframe=$(findkeyframebeforeframe $((sframe + frames)) $film)
+								beframe=$(findkeyframebeforeframe $((sframe + frames)) "$film")
 								if (( $beframe  > $asframe )); then
 									video_splitframes="${video_splitframes},$asframe-$beframe"
 									# FIXME - Beschränkung: maximal 9 Cuts sind so pro Film möglich.
@@ -999,7 +1002,7 @@ function cutfilm ()
 
 
 								if [ $cutwith == "smartmkvmerge" ] && [ ! -f ${outputfilename}.ok ] ; then
-									$X264 $X264_X_ARGS $x264_opts  --index ${tempdir}/x264.index --seek $beframe --frames $((sframe+frames-beframe)) --output $outputfilename $film
+									$X264 $X264_X_ARGS $x264_opts  --index ${tempdir}/x264.index --seek $beframe --frames $((sframe+frames-beframe)) --output $outputfilename "$film"
 									if [ $? -ne 0 ] || [ ! -f $outputfilename ] || [ $(stat -c %s "$outputfilename") -eq 0 ]; then
 										log 1 "x264 failed"
 										cleanup 22
@@ -1016,7 +1019,7 @@ function cutfilm ()
 									avstime=$(echo ${avstime} - $preseek| bc -l )
 									log 3 "$sframe $frames $beframe"
 									if [ ! -f ${outputfilename}.avi.ok ]; then
-										$AVCONV $AVCONV_X_ARGS -ss $preseek -i "${film}"  -ss $avstime $avconvopts  -vframes $((sframe+frames-beframe)) ${outputfilename}.avi
+										$AVCONV $AVCONV_X_ARGS -ss $preseek -i "$film"  -ss $avstime $avconvopts  -vframes $((sframe+frames-beframe)) ${outputfilename}.avi
 										if [ $? -ne 0 ] || [ ! -f ${outputfilename}.avi ] || [ $(stat -c %s "${outputfilename}.avi") -eq 0 ]; then
 											log 1 "avconv failed"
 											if [ -f ${outputfilename}.avi ]; then
@@ -1058,7 +1061,7 @@ function cutfilm ()
 		audio_timecodes="${audio_timecodes:2}"
 		[[ $cutwith == "smartmkvmerge" ]] && mkvmergeopts="-A"
 		if [ ! -f "video_copy.mkv.ok" ]; then
-			$MKVMERGE $MKVMERGE_X_ARGS --ui-language en_US --split parts-frames:$video_splitframes $mkvmergeopts -o video_copy.mkv $film
+			$MKVMERGE $MKVMERGE_X_ARGS --ui-language en_US --split parts-frames:$video_splitframes $mkvmergeopts -o video_copy.mkv "$film"
 			if [ $? -ne 0 ]; then		# we cannot check for video_copy.mkv here because mkvmerge adds suffixes automatically
 				log 1 "mkvmerge failed"
 				cleanup 21
@@ -1083,7 +1086,7 @@ function cutfilm ()
 		if [ $cutwith == "smartmkvmerge" ]; then
 			# audiostream kopieren
 			if [ ! -f "audio_copy.mkv.ok" ]; then
-				$MKVMERGE $MKVMERGE_X_ARGS --ui-language en_US -D --split parts:$audio_timecodes -o  audio_copy.mkv $film
+				$MKVMERGE $MKVMERGE_X_ARGS --ui-language en_US -D --split parts:$audio_timecodes -o  audio_copy.mkv "$film"
 				if [ $? -ne 0 ]; then
 					log 1 "mkvmerge failed"
 					cleanup 21
@@ -1095,7 +1098,7 @@ function cutfilm ()
 			mkvmergeopts="-D"
 		fi
 		# mux
-		$MKVMERGE $MKVMERGE_X_ARGS --engage no_cue_duration --engage no_cue_relative_position --ui-language en_US -o $outname ${vfiles} ${afiles}
+		$MKVMERGE $MKVMERGE_X_ARGS --engage no_cue_duration --engage no_cue_relative_position --ui-language en_US -o "$outname" ${vfiles} ${afiles}
 		ecode=$?
 		if (( $ecode < 2 )) && [ -f "$outname" ] ; then
 			log 3 "$name erfolgreich geschnitten!"
@@ -1110,7 +1113,7 @@ function cutfilm ()
 	elif [ $cutwith == "avisplit" ] ; then
 		cuts=${cuts%,}	# letztes komma abtrennen...
 		log 3 "Uebergebe die errechneten Cuts an avisplit..."
-		log 4 "avisplit -i $film -o "$outname" -t $cuts -c"
+		log 4 "avisplit -i $film -o $outname -t $cuts -c"
 		# Auftrag an avisplit uebergeben... (mergen wird hier durch -c auch erreicht)
 		avisplit -i "$film" -o "$outname" -t $cuts -c >/dev/null
 		if [ $? -eq 0 ] ; then
