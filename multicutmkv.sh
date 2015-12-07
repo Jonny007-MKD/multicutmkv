@@ -856,6 +856,10 @@ function cutfilm ()
 			else
 				frames=`echo "$length * $fps + 0.5 " | bc` # +0.5 zum runden...
 				frames=${frames%%.*}
+				if [ -z "$frames" ] || (( $frames == 0 )); then
+					# Zero length and zero frames
+					continue
+				fi
 
 				if [ $cutwith == "avidemux" ] ; then
 					tmp=$(echo "$avidemillis+(${length}*1000)"|bc -l)
