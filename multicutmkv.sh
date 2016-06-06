@@ -255,6 +255,10 @@ function getFtype()
 			;;
 		"Frame rate"*) 
 			fps="$(echo $line |cut -d":" -f2|cut -d" " -f2)"
+			if [ -z "$fps" -o "$fps" == "0" ]; then
+				log 1 "Frame rate cannot be zero!"
+				cleanup 1
+			fi
 			x264_opts="$x264_opts --fps $fps";;
 		"Encoding settings"*) 
 			for opt in $line
@@ -746,7 +750,7 @@ function findkeyframebeforeframe()
 	then
 		$FFMSINDEX $FFMSINDEX_X_ARGS -k -p -c -f "$film" "${film##*/}.ffindex"
 		if [ ! -f "${kflist}" ]; then
-			log 1 "fmsindex failed"
+			log 1 "ffmsindex failed"
 			cleanup 20
 		fi
 	fi
@@ -806,6 +810,10 @@ function cutfilm ()
 	project_start "$film"
 	getFtype "$film"
 	fps=$( grep FramesPerSecond "$cutlist" | tr -d "\r" | sed 's/FramesPerSecond=//' )
+	if [ -z "$fps" -o "$fps" -eq "0" ]; then
+		log 1 "Frame rate cannot be zero!"
+		cleanup 1
+	fi
 	lines=$( egrep "^(Start|Duration)=" "$cutlist" | tr -d "\r" )
 	numCuts=$( echo $lines | wc -w )
 	numCuts=$(( numCuts / 2 ))
@@ -819,9 +827,13 @@ function cutfilm ()
 			decimalsecs=$[ 10#${startcut##*.} ]
 			decimalsecs=${decimalsecs::2}
 
-			frames=`echo "$startcut * $fps + 0.5" | bc` # +0.5 zum runden...
-			frames=${frames%%.*}
-			sframe=$frames
+			if [ "$startcut" == "0" ]; then
+				sframe=0
+			else
+				frames=`echo "$startcut * $fps + 0.5" | bc` # +0.5 zum runden...
+				frames=${frames%%.*}
+				sframe=$frames
+			fi
 			sdecimalsecs=$decimalsecs
 
 	 
@@ -873,7 +885,7 @@ function cutfilm ()
 					audio_timecodes="${audio_timecodes},+$(get_timecode $startcut)-$(get_timecode $tmp)"
 					#	  log 4 "startframe: $sframe"
 					#	  log 4 "duration: $frames" # endframe
-					skeyframe=$(findkeyframebeforeframe $sframe "$film")
+					skeyframe=$(findkeyframebeforeframe "$sframe" "$film")
 					local tmp
 					# encode
 					log 3 "${c_info}start: $sframe${c_end}	${c_info}end:  	$((sframe + frames))${c_end}	${c_info}length:   $frames"
@@ -889,7 +901,7 @@ function cutfilm ()
 						else
 							log 3 "end ist kein keyframe"
 							# das häppchen startet mit keyframe aber endet nicht aufkeyframe
-							lkeyframe=$(findkeyframebeforeframe $((sframe + frames)) "$film")
+							lkeyframe=$(findkeyframebeforeframe "$((sframe + frames))" "$film")
 							ulkeyframe=$lkeyframe
 							if (( $lkeyframe < $sframe )); then
 								ulkeyframe=$sframe
@@ -996,7 +1008,7 @@ function cutfilm ()
 							log 3 "end ist kein keyframe"
 							# weder start noch ende sind keyframes
 							if (($frames+$sframe > $asframe )); then
-								beframe=$(findkeyframebeforeframe $((sframe + frames)) "$film")
+								beframe=$(findkeyframebeforeframe "$((sframe + frames))" "$film")
 								if (( $beframe  > $asframe )); then
 									video_splitframes="${video_splitframes},$asframe-$beframe"
 									# FIXME - Beschränkung: maximal 9 Cuts sind so pro Film möglich.
@@ -1329,7 +1341,7 @@ cd "${workdir}"
 if [[ ${file:0:1} != "/" ]]; then
 	file=`cd "${file%/*}" 2>/dev/null ; pwd`/"${file##*/}"	# absoluten dateinamen ermitteln
 fi
-if [ ! -e $file ]; then
+if [ ! -e "$file" ]; then
 	log 1 "Specified file ($file) does not exist!"
 	cleanup 4
 fi
