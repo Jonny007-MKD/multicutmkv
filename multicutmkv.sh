@@ -10,6 +10,12 @@
 # Erweiterungen von Jonny007-MKD, Lizenz: GPLv2
 #
 # https://github.com/Jonny007-MKD/multicutmkv
+#
+# VERSION 261007
+# Erweiterungen von mithrandir42, Lizenz: GPLv2
+# - Support für die neuen onlinetvrecorder Dateiformate (2026)
+#
+# https://github.com/Jonny007-MKD/multicutmkv
 #################################################
 # Exit Codes
 #   1 General error or interrupt
@@ -143,7 +149,7 @@ x264_opts=""
 function log {
 	if [ $1 -le $echoLevel ]; then							# if we shall echo this message
 		if [ $1 -eq 1 ]; then
-			echo -e "${c_error}$2${c_end}" >&2								# redirect error to stderr
+			echo -e "${c_error}$2${c_end}" >&2							# redirect error to stderr
 		else
 			echo -e "$2${c_end}"
 		fi
@@ -200,10 +206,10 @@ function check_dependencies2()
 			log 1 "Please install x264"
 			pist=1
 		fi
-		if ! type avxFrameServer > /dev/null 2>&1 ; then
-			log 1 "Please make and install avxsynth"
-			pist=1
-		fi
+		#if ! type avxFrameServer > /dev/null 2>&1 ; then
+		#	log 1 "Please make and install avxsynth"
+		#	pist=1
+		#fi
 	elif [ $cutwith == "smartmkvmergeavconv" ]; then
 		if ! type $AVCONV > /dev/null 2>&1 ; then
 			log 1 "Please install libav-tools"
@@ -254,9 +260,10 @@ function getFtype()
 		"Frame rate mode"*) 
 			;;
 		"Frame rate"*) 
-			fps="$(echo $line |cut -d":" -f2|cut -d" " -f2)"
-			if [ -z "$fps" -o "$fps" == "0" ]; then
-				log 1 "Frame rate cannot be zero!"
+			# Extrahiert nur die erste Zahl/Dezimalzahl aus der Zeile, egal was danach kommt
+			fps=$(echo "$line" | grep -oE '[0-9]+(\.[0-9]+)?' | head -n 1)
+			if [ -z "$fps" ] || [ "$(echo "$fps == 0" | bc -l 2>/dev/null)" -eq 1 ]; then
+				log 1 "Frame rate cannot be zero or empty!"
 				cleanup 1
 			fi
 			x264_opts="$x264_opts --fps $fps";;
@@ -353,13 +360,13 @@ function dlCutlists ()
 	if (( $# >= 2 )); then		# Difference to filesize given
 		search=$((search-$2))
 	fi
-
+        filename=$(basename -- "$filename")
 	cd ${tempdir}
 	rm *.xml 2>/dev/null # alte xmls loeschen, da sonst keine sichere zuordnung cutlist<->film durgefuehrt werden kann
 	# xml herunterladen, und in einzelne abschnitte aufteilen
 	#  wget -q -O - "http://cutlist.de/getxml.php?version=0.9.8.0&ofsb=$search" | gawk -F ">" '/<id>/{split($2,tmp,"<");id=tmp[1]}/\/cutlist/{id=0}{if (id>0) {gsub("\t","");print > id ".de.xml" }}'
-
-	wget -q -O - "http://cutlist.at/getxml.php?ofsb=$search" | gawk -F ">" '/<id>/{split($2,tmp,"<");id=tmp[1]}/\/cutlist/{id=0}{if (id>0) {gsub("\t","");print > id ".at.xml" }}'
+	#  wget -q -O - "http://cutlist.at/getxml.php?ofsb=$search" | gawk -F ">" '/<id>/{split($2,tmp,"<");id=tmp[1]}/\/cutlist/{id=0}{if (id>0) {gsub("\t","");print > id ".at.xml" }}'
+        wget -q -O - "http://cutlist.at/getxml.php?name=$filename" | gawk -F ">" '/<id>/{split($2,tmp,"<");id=tmp[1]}/\/cutlist/{id=0}{if (id>0) {gsub("\t","");print > id ".at.xml" }}'
 }
 
 function dlCutlist ()
@@ -1075,6 +1082,15 @@ function cutfilm ()
 		outname="$cutdir/${name%.mkv}-cut.mkv"
 		video_splitframes="${video_splitframes:1}"
 		audio_timecodes="${audio_timecodes:2}"
+                echo ${video_splitframes:1}
+                # Filtert die doppelten Zahlen heraus
+                video_splitframes=$(echo "$video_splitframes" | gawk 'BEGIN{RS=","; ORS=","} {split($0,a,"-"); if(a[1]!=a[2]) print $0}' | sed 's/,$//')
+                echo "$video_splitframes"
+                if [ "$sframe" -eq "$frames" ]; then
+                        log 2 "Ignoriere ungültiges 1-Frame-Segment: $sframe-$frames"
+                        continue
+                fi
+
 		[[ $cutwith == "smartmkvmerge" ]] && mkvmergeopts="-A"
 		if [ ! -f "video_copy.mkv.ok" ]; then
 			$MKVMERGE $MKVMERGE_X_ARGS --ui-language en_US --split parts-frames:$video_splitframes $mkvmergeopts -o video_copy.mkv "$film"
