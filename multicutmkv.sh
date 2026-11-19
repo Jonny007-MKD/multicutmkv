@@ -260,13 +260,12 @@ function getFtype()
 		"Frame rate mode"*) 
 			;;
 		"Frame rate"*) 
-			# Extrahiert nur die erste Zahl/Dezimalzahl aus der Zeile, egal was danach kommt
-			fps=$(echo "$line" | grep -oE '[0-9]+(\.[0-9]+)?' | head -n 1)
-			if [ -z "$fps" ] || [ "$(echo "$fps == 0" | bc -l 2>/dev/null)" -eq 1 ]; then
-				log 1 "Frame rate cannot be zero or empty!"
-				cleanup 1
-			fi
-			x264_opts="$x264_opts --fps $fps";;
+    			video_fps=$(echo "$line" | grep -oE '[0-9]+(\.[0-9]+)?' | head -n 1)
+    			if [ -z "$video_fps" ] || [ "$(echo "$video_fps == 0" | bc -l 2>/dev/null)" -eq 1 ]; then
+        			log 1 "Frame rate cannot be zero or empty!"
+        			cleanup 1
+    			fi
+    			x264_opts="$x264_opts --fps $video_fps";;
 		"Encoding settings"*) 
 			for opt in $line
 			do
@@ -817,9 +816,13 @@ function cutfilm ()
 	project_start "$film"
 	getFtype "$film"
 	fps=$( grep FramesPerSecond "$cutlist" | tr -d "\r" | sed 's/FramesPerSecond=//' )
-	if [ -z "$fps" -o "$fps" -eq "0" ]; then
-		log 1 "Frame rate cannot be zero!"
-		cleanup 1
+	# Fallback auf die per MediaInfo ermittelte Framerate des Videos, falls in der Cutlist leer oder 0
+	if [ -z "$fps" ] || [ "$(echo "$fps == 0" | bc -l 2>/dev/null)" -eq 1 ]; then
+    		fps="$video_fps"
+	fi
+	if [ -z "$fps" ] || [ "$(echo "$fps == 0" | bc -l 2>/dev/null)" -eq 1 ]; then
+    		log 1 "Frame rate cannot be zero!"
+    		cleanup 1
 	fi
 	lines=$( egrep "^(Start|Duration)=" "$cutlist" | tr -d "\r" )
 	numCuts=$( echo $lines | wc -w )
